@@ -10,7 +10,7 @@ import FoundationExtensions
 struct Gwncli: ParsableCommand {
     
     /// Common options for all commands
-    struct Options: ParsableArguments {
+    struct CommonOptions: ParsableArguments {
         @Option(help: "URL of the Grandstream web interface - preferrable is the bonjour-URL - i.e. https://gwn_c074ad7b2950.local")
         var url: String
         @Option(help: "Username to use at login, usually admin")
@@ -20,8 +20,7 @@ struct Gwncli: ParsableCommand {
         
         /// Generates an 8 character pseudo random password. Just to have a different password in the command line help every time you call it 🤡
         static func randomPassword() -> String {
-            let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-            return String((0..<8).map{ _ in letters.randomElement()! })
+            return String((0..<8).map { _ in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
         }
     }
 
@@ -37,7 +36,7 @@ struct Gwncli: ParsableCommand {
             commandName: "list",
             abstract: "Lists currently active bandwith rules."
         )
-        @OptionGroup var options: Options
+        @OptionGroup var options: CommonOptions
 
         mutating func run() throws {
             guard let gwnUrl = URL(string: options.url) else {
@@ -48,10 +47,10 @@ struct Gwncli: ParsableCommand {
                                      delegate: TlsWarningsIgnoringUrlSessionDelegate(),
                                      delegateQueue: nil)
             
-            let canellable = GwnMethods.acquireSession(url: gwnUrl,
-                                                       user: options.username,
-                                                       password: options.password,
-                                                       session: session)
+            let canellable = GWN.acquireSession(url: gwnUrl,
+                                                user: options.username,
+                                                password: options.password,
+                                                session: session)
                 .sink(receiveCompletion: { completion in
                     ListRules.exit()
                 }, receiveValue: { value in
@@ -69,7 +68,7 @@ struct Gwncli: ParsableCommand {
             abstract: "Adds or updates a bandwith rule for the given address."
         )
 
-        @OptionGroup var options: Options
+        @OptionGroup var options: CommonOptions
         
         func run() throws {
             
@@ -82,7 +81,7 @@ struct Gwncli: ParsableCommand {
             abstract: "Removed a bandwith rule for the given address."
         )
         
-        @OptionGroup var options: Options
+        @OptionGroup var options: CommonOptions
         
         func run() throws {
             

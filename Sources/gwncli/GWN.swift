@@ -3,7 +3,7 @@
 import Combine
 import Foundation
 
-struct GwnMethods {
+struct GWN {
     
     static func acquireSession(url: URL, user: String, password: String, session: URLSession) -> Publishers.Promise<String, GwnError> {
         var request =  URLRequest(url: url.appendingPathComponent("/ubus/session.login"))
