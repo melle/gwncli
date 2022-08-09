@@ -64,8 +64,9 @@ struct GWN {
         return session
             .dataTaskPublisher(for: request)
             .map(\.data)
-            .decode(type: GrandstreamConfigurationResponse.self, decoder: JSONDecoder())
+            .decode(type: [GrandstreamConfigurationResponse].self, decoder: JSONDecoder())
             .mapError(GwnError.networkError)
+            .compactMap(\.first) // [GrandstreamConfigurationResponse] -> GrandstreamConfigurationResponse
             .map(\.result)
             .compactMap{ $0.first } // grab the first array element
             .promise {

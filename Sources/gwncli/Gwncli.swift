@@ -51,10 +51,13 @@ struct Gwncli: ParsableCommand {
                                                 user: options.username,
                                                 password: options.password,
                                                 session: session)
+                .flatMap({ token in
+                    GWN.getConfiguration(url: gwnUrl, session: session, token: token)
+                })
                 .sink(receiveCompletion: { completion in
                     ListRules.exit()
                 }, receiveValue: { value in
-                    print(value)
+                    print(value.values.values)
                 })
             
             
