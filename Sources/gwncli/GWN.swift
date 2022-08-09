@@ -38,5 +38,39 @@ struct GWN {
             }
     }
     
+    static func getConfiguration(url: URL, session: URLSession, token: String) -> Publishers.Promise<GrandstreamConfiguration, GwnError> {
+        var request =  URLRequest(url: url.appendingPathComponent("/ubus/uci.get"))
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = """
+                           [
+                             {
+                               "id": 3306,
+                               "jsonrpc": "2.0",
+                               "method": "call",
+                               "params": [
+                                 "\(token)",
+                                 "uci",
+                                 "get",
+                                 {
+                                   "config": "grandstream"
+                                 }
+                               ]
+                             }
+                           ]
+                           """.data(using: .utf8)
+        
+        return session
+            .dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: GrandstreamConfigurationResponse.self, decoder: JSONDecoder())
+            .mapError(GwnError.networkError)
+            .map(\.result)
+            .compactMap{ $0.first } // grab the first array element
+            .promise {
+                .failure(GwnError.emptyLoginResponse)
+            }
+    }
     
 }
