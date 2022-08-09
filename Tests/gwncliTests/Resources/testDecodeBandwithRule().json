@@ -1,0 +1,14 @@
+{
+     "rule4": {
+         ".anonymous": false,
+         ".type": "bwctrl-rule",
+         ".name": "rule4",
+         ".index": 31,
+         "id": "00:11:22:33:44:55",
+         "enabled": "1",
+         "type": "mac",
+         "urate": "123Kbps",
+         "drate": "456Kbps",
+         "ssid_id": "ssid0"
+     }
+}

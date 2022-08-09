@@ -21,6 +21,7 @@ let package = Package(
             ]),
         .testTarget(
             name: "gwncliTests",
-            dependencies: ["gwncli"]),
+            dependencies: ["gwncli"],
+            resources: [.copy("Resources/")]),
     ]
 )

@@ -1,42 +1,114 @@
-import XCTest
-@testable import gwncli
 import class Foundation.Bundle
+@testable import gwncli
+import XCTest
 
 final class GwncliTests: XCTestCase { }
 
 // MARK: - Parser tests
 
-// These are no real unit tests, but used to develop the models and make sure we can parse the weird JSON.
+// These are no real unit tests, but are handy to develop the models and make sure we can parse the weird JSON.
 extension GwncliTests {
     
     func testParseLoginResponse() throws {
-        // given (acls are not relevant and have been omited in the json)
-        let json = """
-                   {
-                       "jsonrpc": "2.0",
-                       "id": 3,
-                       "result": [
-                           0,
-                           {
-                               "ubus_rpc_session": "e6fab30a2420c3396abd76d71d87ef07",
-                               "timeout": 300,
-                               "expires": 299,
-                               "acls": {
-                               },
-                               "data": {
-                                   "username": "admin"
-                               }
-                           }
-                       ]
-                   }
-                   """.data(using: .utf8)!
-
         // when
-        let sut: LoginResponse = try JSONDecoder().decode(LoginResponse.self, from: json)
+        let sut: LoginResponse = try decode(resource: #function, to: LoginResponse.self)
         
         // then - do we have a session token?
         XCTAssertEqual(sut.jsonrpc, "2.0")
         XCTAssertEqual(sut.id, 3)
         XCTAssertEqual(sut.session, "e6fab30a2420c3396abd76d71d87ef07")
+    }
+    
+    func testParseGrandstreamConfigurationResponse() throws {
+        // when
+        let sut: [GrandstreamConfigurationResponse] = try decode(resource: #function, to: [GrandstreamConfigurationResponse].self)
+        
+        // then - this is the full configuration, we just check some of the values
+        XCTAssertEqual(sut.first?.result.first?.values.count, 33)
+
+        if case let .rule(bandwithRule) = sut.first?.result.first?.values["rule4"] {
+            XCTAssertEqual(bandwithRule.anonymous, false)
+            XCTAssertEqual(bandwithRule.name, "rule4")
+            XCTAssertEqual(bandwithRule.index, 31)
+            XCTAssertEqual(bandwithRule.id, "00:11:22:33:44:55")
+            XCTAssertEqual(bandwithRule.enabled, "1")
+            XCTAssertEqual(bandwithRule.idType, "mac")
+            XCTAssertEqual(bandwithRule.urate, "123Kbps")
+            XCTAssertEqual(bandwithRule.drate, "456Kbps")
+            XCTAssertEqual(bandwithRule.ssid, "ssid0")
+        } else {
+            XCTFail("could not decode json")
+        }
+    }
+    
+    func testDecodeBandwithRule() throws {
+        // when
+        let sut: Dictionary<String, BandwidthRule> = try decode(resource: #function, to: Dictionary<String, BandwidthRule>.self)
+        
+        // then
+        XCTAssertEqual(sut.first?.value.id, "00:11:22:33:44:55")
+        XCTAssertEqual(sut.first?.value.anonymous, false)
+        XCTAssertEqual(sut.first?.value.name, "rule4")
+        XCTAssertEqual(sut.first?.value.index, 31)
+        XCTAssertEqual(sut.first?.value.id, "00:11:22:33:44:55")
+        XCTAssertEqual(sut.first?.value.enabled, "1")
+        XCTAssertEqual(sut.first?.value.idType, "mac")
+        XCTAssertEqual(sut.first?.value.urate, "123Kbps")
+        XCTAssertEqual(sut.first?.value.drate, "456Kbps")
+        XCTAssertEqual(sut.first?.value.ssid, "ssid0")
+    }
+    
+    func testDecodeSSIDConfig() throws {
+        // when
+        let sut: SsidConfig = try decode(resource: #function, to: SsidConfig.self)
+        
+        // then
+        XCTAssertEqual(sut.anonymous, false)
+        XCTAssertEqual(sut.type, "additional_ssid")
+        XCTAssertEqual(sut.name, "ssid1")
+        XCTAssertEqual(sut.index, 18)
+        XCTAssertEqual(sut.id, "ssid1")
+        XCTAssertEqual(sut.enable, "1")
+        XCTAssertEqual(sut.ssid, "Freifunk")
+        XCTAssertEqual(sut.ssidHidden, "0")
+        XCTAssertEqual(sut.clientIPAssignment, "0")
+        XCTAssertEqual(sut.portalEnable, "0")
+        XCTAssertEqual(sut.enableSchedule, "0")
+        XCTAssertEqual(sut.encryption, "6")
+        XCTAssertEqual(sut.wpaKeyMode, "2")
+        XCTAssertEqual(sut.wpaEncryption, "0")
+        XCTAssertEqual(sut.wpaKey, "supersecret")
+        XCTAssertEqual(sut.bridgeEnable, "0")
+        XCTAssertEqual(sut.macFiltering, "0")
+        XCTAssertEqual(sut.isolation, "0")
+        XCTAssertEqual(sut.dtimPeriod, "1")
+        XCTAssertEqual(sut.bms, "0")
+        XCTAssertEqual(sut.mcastToUcast, "0")
+        XCTAssertEqual(sut.wifi80211k, "0")
+        XCTAssertEqual(sut.wifi80211v, "0")
+        XCTAssertEqual(sut.proxyarp, "0")
+        XCTAssertEqual(sut.uapsd, "1")
+        XCTAssertEqual(sut.voiceEnterprise, "0")
+        XCTAssertEqual(sut.wifi80211r, "0")
+        XCTAssertEqual(sut.staIdleTimeout, "300")
+        XCTAssertEqual(sut.bintval, "100")
+        XCTAssertEqual(sut.rssiEnable, "0")
+        XCTAssertEqual(sut.ratelimitEnable, "1")
+        XCTAssertEqual(sut.minirate, "6")
+    }
+}
+
+// MARK: - Helpers
+ 
+extension GwncliTests {
+    
+    func decode<T: Decodable>(resource: String, to type: T.Type) throws -> T {
+          return try JSONDecoder().decode(T.self, from: data(resource: resource))
+    }
+
+    func data(resource: String) throws -> Data {
+        // no idea why but `Bundle.module.url(forResource: functionName, withExtension: "json")` fails here 🤷‍♂️
+        let url = Bundle.module.bundleURL.appendingPathComponent("Contents/Resources/Resources/\(resource).json")
+        return try Data(contentsOf: url)
     }
 }

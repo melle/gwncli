@@ -1,0 +1,17 @@
+{
+   "jsonrpc": "2.0",
+   "id": 3,
+   "result": [
+       0,
+       {
+           "ubus_rpc_session": "e6fab30a2420c3396abd76d71d87ef07",
+           "timeout": 300,
+           "expires": 299,
+           "acls": {
+           },
+           "data": {
+               "username": "admin"
+           }
+       }
+   ]
+}

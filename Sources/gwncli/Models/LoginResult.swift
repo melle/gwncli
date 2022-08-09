@@ -2,7 +2,6 @@
 
 import Foundation
 
-
 struct LoginResponse: Decodable {
     let jsonrpc: String
     let id: Int
