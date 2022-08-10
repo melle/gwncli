@@ -27,3 +27,10 @@ struct BandwidthRule: Decodable {
         case ssid = "ssid_id"
     }
 }
+
+extension BandwidthRule: CustomStringConvertible {
+    var description: String {
+        "\(name)\t\((enabled == "1" ? "[enabled] " : "[disabled]"))\tU: \(urate)\tD:\(drate)\tSSID: \(ssid)\t\(idType)\t\(id)"
+    }
+    
+}

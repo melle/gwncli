@@ -36,31 +36,32 @@ struct Gwncli: ParsableCommand {
             commandName: "list",
             abstract: "Lists currently active bandwith rules."
         )
+        
         @OptionGroup var options: CommonOptions
 
         mutating func run() throws {
             guard let gwnUrl = URL(string: options.url) else {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
+            var cancellables: Set<AnyCancellable> = .init()
             
             let session = URLSession(configuration: URLSession.shared.configuration,
                                      delegate: TlsWarningsIgnoringUrlSessionDelegate(),
                                      delegateQueue: nil)
             
-            let canellable = GWN.acquireSession(url: gwnUrl,
-                                                user: options.username,
-                                                password: options.password,
-                                                session: session)
-                .flatMap({ token in
-                    GWN.getConfiguration(url: gwnUrl, session: session, token: token)
-                })
+            GWN.acquireSession(url: gwnUrl, user: options.username, password: options.password, session: session)
+                .flatMap { GWN.getConfiguration(url: gwnUrl, session: session, token: $0) }
                 .sink(receiveCompletion: { completion in
-                    ListRules.exit()
-                }, receiveValue: { value in
-                    print(value.values.values)
+                    switch completion {
+                    case let .failure(gwnError):
+                        ListRules.exit(withError: gwnError)
+                    case .finished:
+                        ListRules.exit()
+                    }
+                }, receiveValue: { configuration in
+                    print(configuration.bandWithRulesFormatted)
                 })
-            
-            
+                .store(in: &cancellables)
             RunLoop.current.run()
         }
     }

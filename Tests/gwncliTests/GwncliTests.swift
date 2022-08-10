@@ -98,6 +98,30 @@ extension GwncliTests {
     }
 }
 
+// MARK: - Console output
+
+extension GwncliTests {
+    func testBandwidthRulesFormatted() throws {
+        // given
+        let configResponse: [GrandstreamConfigurationResponse] = try decode(resource: #function, to: [GrandstreamConfigurationResponse].self)
+        
+        // when
+        guard let sut = configResponse.first?.result.first?.bandWithRulesFormatted else { XCTFail() ; return }
+        
+        // then - rules must appear properly formatted in the right order
+        XCTAssertEqual(sut,
+                       """
+                       rule4\t[enabled] \tU: 123Kbps\tD:456Kbps\tSSID: ssid0\tmac\t00:11:22:33:44:55
+                       rule5\t[enabled] \tU: 123Kbps\tD:456Kbps\tSSID: ssid1\tmac\t00:11:22:33:44:55
+                       rule2\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid0\tmac\t6C:C4:D5:50:95:F1
+                       rule3\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid1\tmac\t6C:C4:D5:50:95:F1
+                       rule0\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid0\tmac\t9C:FC:28:D1:F7:20
+                       rule1\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid1\tmac\t9C:FC:28:D1:F7:20
+                       """
+        )
+    }
+}
+
 // MARK: - Helpers
  
 extension GwncliTests {

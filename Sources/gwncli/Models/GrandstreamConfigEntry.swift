@@ -10,7 +10,7 @@ enum GrandstreamConfigEntry: Decodable {
     enum CodingKeys: String, CodingKey {
         case type = ".type"
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: GrandstreamConfigEntry.CodingKeys.self)
         let typeString = try container.decode(String.self, forKey: .type)
@@ -21,6 +21,22 @@ enum GrandstreamConfigEntry: Decodable {
             self = try .ssid(SsidConfig.init(from: decoder))
         default:
             self = .ignored(typeString)
+        }
+    }
+}
+
+extension GrandstreamConfigEntry {
+    public var rule: BandwidthRule? {
+        switch self {
+        case let .rule(bandwidthRule): return bandwidthRule
+        default: return nil
+        }
+    }
+    
+    public var ssid: SsidConfig? {
+        switch self {
+        case let .ssid(ssidConfig): return ssidConfig
+        default: return nil
         }
     }
 }
