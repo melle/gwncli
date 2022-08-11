@@ -2,12 +2,12 @@
 
 ## Abstract
 
-It's work in progress. I want to throttle the bandwith of specific wifi devices using my home automation
-system. Therefore I need a cli tool to change bandwith rules programmatically. Grandstream supports
+It's work in progress. I want to throttle the bandwidth of specific wifi devices using my home automation
+system. Therefore I need a cli tool to change bandwidth rules programmatically. Grandstream supports
 schedules, but I need to (un)throttle things on demand.  
 
 Why would anyone do that? Well, think of an the Apple TV. It still works, but cannot stream movies at
-96kb/s. Also iPads, smartphones ect. It works somehow, but YouTube, TikTok ect. become unusable at low bandwiths.
+96kb/s. Also iPads, smartphones ect. It works somehow, but YouTube, TikTok ect. become unusable at low bandwidths.
 Did you say 'bad parenting'? Well, I call it a challenge for my kids to lern some things about networking 😬
 
 ## Building
@@ -41,7 +41,7 @@ Add or modify a rule:
 
  * [✅] perform login and acquire session token
  * [✅] command line structure and help
- * [✅] list current bandwith rules
- * [🔨] delete bandwith rules
- * [ ] add / update bandwith rules
+ * [✅] list current bandwidth rules
+ * [🔨] delete bandwidth rules
+ * [ ] add / update bandwidth rules
  

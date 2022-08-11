@@ -34,7 +34,7 @@ struct Gwncli: ParsableCommand {
     struct ListRules: ParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "list",
-            abstract: "Lists currently active bandwith rules."
+            abstract: "Lists currently active bandwidth rules."
         )
         
         @OptionGroup var options: CommonOptions
@@ -59,7 +59,7 @@ struct Gwncli: ParsableCommand {
                         ListRules.exit()
                     }
                 }, receiveValue: { configuration in
-                    print(configuration.bandWithRulesFormatted)
+                    print(configuration.bandwidthRulesFormatted)
                 })
                 .store(in: &cancellables)
             RunLoop.current.run()
@@ -69,7 +69,7 @@ struct Gwncli: ParsableCommand {
     struct AddOrUpdate: ParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "set",
-            abstract: "Adds or updates a bandwith rule for the given address."
+            abstract: "Adds or updates a bandwidth rule for the given address."
         )
 
         @OptionGroup var options: CommonOptions
@@ -82,7 +82,7 @@ struct Gwncli: ParsableCommand {
     struct DeleteRule: ParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "delete",
-            abstract: "Removed a bandwith rule for the given address."
+            abstract: "Removed a bandwidth rule for the given address."
         )
         
         @OptionGroup var options: CommonOptions

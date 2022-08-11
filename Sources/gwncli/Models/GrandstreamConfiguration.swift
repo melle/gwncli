@@ -26,13 +26,13 @@ extension GrandstreamConfiguration {
 }
 
 extension GrandstreamConfiguration {
-    /// Returns all config entries that represent a bandwith rule.
+    /// Returns all config entries that represent a bandwidth rule.
     public var bandwidthRules: [BandwidthRule] {
         self.values.values.compactMap{ $0.rule }
     }
     
-    /// Lists all bandwith rules properly formatted for console outpu
-    public var bandWithRulesFormatted: String {
+    /// Lists all bandwidth rules properly formatted for console outpu
+    public var bandwidthRulesFormatted: String {
         bandwidthRules
             .sorted(by: { lhs, rhs in
                 (lhs.id, lhs.ssid) < (rhs.id, rhs.ssid)

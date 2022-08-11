@@ -26,22 +26,22 @@ extension GwncliTests {
         // then - this is the full configuration, we just check some of the values
         XCTAssertEqual(sut.first?.result.first?.values.count, 33)
 
-        if case let .rule(bandwithRule) = sut.first?.result.first?.values["rule4"] {
-            XCTAssertEqual(bandwithRule.anonymous, false)
-            XCTAssertEqual(bandwithRule.name, "rule4")
-            XCTAssertEqual(bandwithRule.index, 31)
-            XCTAssertEqual(bandwithRule.id, "00:11:22:33:44:55")
-            XCTAssertEqual(bandwithRule.enabled, "1")
-            XCTAssertEqual(bandwithRule.idType, "mac")
-            XCTAssertEqual(bandwithRule.urate, "123Kbps")
-            XCTAssertEqual(bandwithRule.drate, "456Kbps")
-            XCTAssertEqual(bandwithRule.ssid, "ssid0")
+        if case let .rule(bandwidthRule) = sut.first?.result.first?.values["rule4"] {
+            XCTAssertEqual(bandwidthRule.anonymous, false)
+            XCTAssertEqual(bandwidthRule.name, "rule4")
+            XCTAssertEqual(bandwidthRule.index, 31)
+            XCTAssertEqual(bandwidthRule.id, "00:11:22:33:44:55")
+            XCTAssertEqual(bandwidthRule.enabled, "1")
+            XCTAssertEqual(bandwidthRule.idType, "mac")
+            XCTAssertEqual(bandwidthRule.urate, "123Kbps")
+            XCTAssertEqual(bandwidthRule.drate, "456Kbps")
+            XCTAssertEqual(bandwidthRule.ssid, "ssid0")
         } else {
             XCTFail("could not decode json")
         }
     }
     
-    func testDecodeBandwithRule() throws {
+    func testDecodebandwidthRule() throws {
         // when
         let sut: Dictionary<String, BandwidthRule> = try decode(resource: #function, to: Dictionary<String, BandwidthRule>.self)
         
@@ -106,7 +106,7 @@ extension GwncliTests {
         let configResponse: [GrandstreamConfigurationResponse] = try decode(resource: #function, to: [GrandstreamConfigurationResponse].self)
         
         // when
-        guard let sut = configResponse.first?.result.first?.bandWithRulesFormatted else { XCTFail() ; return }
+        guard let sut = configResponse.first?.result.first?.bandwidthRulesFormatted else { XCTFail() ; return }
         
         // then - rules must appear properly formatted in the right order
         XCTAssertEqual(sut,
