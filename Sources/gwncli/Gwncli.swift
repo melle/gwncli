@@ -86,13 +86,35 @@ struct Gwncli: ParsableCommand {
         )
         
         @OptionGroup var options: CommonOptions
+
+        @Option(help: "Name of the rule to delete (use 'list' subcommand to see all rules)")
+        var ruleName: String
         
+
         func run() throws {
+            guard let gwnUrl = URL(string: options.url) else {
+                throw GwnError.freeForm("Invalid url \(options.url)")
+            }
+            var cancellables: Set<AnyCancellable> = .init()
             
+            let session = URLSession(configuration: URLSession.shared.configuration,
+                                     delegate: TlsWarningsIgnoringUrlSessionDelegate(),
+                                     delegateQueue: nil)
+            
+            GWN.acquireSession(url: gwnUrl, user: options.username, password: options.password, session: session)
+                .flatMap { GWN.deleteRule(url: gwnUrl, session: session, token: $0, ruleName: ruleName) }
+                .sink(receiveCompletion: { completion in
+                    switch completion {
+                    case let .failure(gwnError):
+                        DeleteRule.exit(withError: gwnError)
+                    case .finished:
+                        DeleteRule.exit()
+                    }
+                }, receiveValue: { (void: Void) in
+                    
+                })
+                .store(in: &cancellables)
+            RunLoop.current.run()
         }
     }
 }
-//
-//let options = Gwncli.parseOrExit()
-//
-//print("foo")

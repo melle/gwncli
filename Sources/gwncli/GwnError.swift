@@ -5,5 +5,6 @@ import Foundation
 enum GwnError: Error {
     case networkError(Error)
     case emptyLoginResponse
+    case ruleNotFound(String)
     case freeForm(String)
 }
