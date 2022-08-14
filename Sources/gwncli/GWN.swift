@@ -6,68 +6,38 @@ import FoundationExtensions
 
 struct GWN {
     
-    static func acquireSession(url: URL, user: String, password: String, session: URLSession) -> Publishers.Promise<String, GwnError> {
-        var request =  URLRequest(url: url.appendingPathComponent("/ubus/session.login"))
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = """
-                           {
-                             "id": 3,
-                             "jsonrpc": "2.0",
-                             "method": "call",
-                             "params": [
-                               "00000000000000000000000000000000",
-                               "session",
-                               "login",
-                               {
-                                 "username": "\(user)",
-                                 "password": "\(password)"
-                               }
-                             ]
-                           }
-                           """.data(using: .utf8)
+    static func acquireSession(context: GwnContext) -> Publishers.Promise<GwnContext, GwnError> {
+        guard let request = GrandstreamRequest.login(context: context).urlRequest else {
+            return Fail(error: GwnError.freeForm("FIXME")).promise
+        }
         
-        return session
+        return context.session
             .dataTaskPublisher(for: request)
             .map(\.data)
             .decode(type: LoginResponse.self, decoder: JSONDecoder())
             .mapError(GwnError.networkError)
             .map(\.session)
+            .flatMap({ (token: String)  -> Publishers.Promise<GwnContext, GwnError> in
+                context.sessionToken = token
+                return Just<GwnContext>(context)
+                    .mapError(absurd)
+                    .promise
+            })
             .promise {
                 .failure(GwnError.emptyLoginResponse)
             }
     }
     
-    static func getConfiguration(url: URL, session: URLSession, token: String) -> Publishers.Promise<GrandstreamConfiguration, GwnError> {
-        var request =  URLRequest(url: url.appendingPathComponent("/ubus/uci.get"))
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = """
-                           [
-                             {
-                               "id": 3306,
-                               "jsonrpc": "2.0",
-                               "method": "call",
-                               "params": [
-                                 "\(token)",
-                                 "uci",
-                                 "get",
-                                 {
-                                   "config": "grandstream"
-                                 }
-                               ]
-                             }
-                           ]
-                           """.data(using: .utf8)
-        
-        return session
+    static func getConfiguration(context: GwnContext) -> Publishers.Promise<GrandstreamConfiguration, GwnError> {
+        guard let request = GrandstreamRequest.getConfig(context: context).urlRequest else {
+            return Fail(error: GwnError.freeForm("FIXME")).promise
+        }
+
+        return context.session
             .dataTaskPublisher(for: request)
             .map(\.data)
-            .decode(type: [GrandstreamConfigurationResponse].self, decoder: JSONDecoder())
+            .decode(type: GrandstreamConfigurationResponse.self, decoder: JSONDecoder())
             .mapError(GwnError.networkError)
-            .compactMap(\.first) // [GrandstreamConfigurationResponse] -> GrandstreamConfigurationResponse
             .map(\.result)
             .compactMap{ $0.first } // grab the first array element
             .promise {
@@ -76,8 +46,8 @@ struct GWN {
         
     }
     
-    static func deleteRule(url: URL, session: URLSession, token: String, ruleName: String) -> Publishers.Promise<Void, GwnError> {
-        return getConfiguration(url: url, session: session, token: token)
+    static func deleteRule(context: GwnContext, ruleName: String) -> Publishers.Promise<Void, GwnError> {
+        return getConfiguration(context: context)
             .flatMap { config in
                 // only delete rules that exist :)
                 guard config.bandwidthRules.contains(where: { $0.name == ruleName }) else {
@@ -85,38 +55,22 @@ struct GWN {
                 }
                 
                 // delete and confirm
-                return deleteRuleWithoutCheck(url: url, session: session, token: token, ruleName: ruleName)
-                    .flatMap { applyPendingChanges(url: url, session: session, token: token) }
-                    .flatMap { confirmPendingChanges(url: url, session: session, token: token) }
+                return deleteRuleWithoutCheck(context: context, ruleName: ruleName)
+                    .flatMap { applyPendingChanges(url: context.url, session: context.session, token: context.sessionToken) }
+                    .flatMap { confirmPendingChanges(url: context.url, session: context.session, token: context.sessionToken) }
             }
     }
 }
 
 extension GWN {
     
-    static private func deleteRuleWithoutCheck(url: URL, session: URLSession, token: String, ruleName: String) -> Publishers.Promise<Void, GwnError> {
-        var request =  URLRequest(url: url.appendingPathComponent("/ubus/uci.delete"))
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = """
-                           {
-                             "id": 42,
-                             "jsonrpc": "2.0",
-                             "method": "call",
-                             "params": [
-                               "\(token)",
-                               "uci",
-                               "delete",
-                               {
-                                 "config": "grandstream",
-                                 "section": "\(ruleName)"
-                               }
-                             ]
-                           }
-                           """.data(using: .utf8)
+    static private func deleteRuleWithoutCheck(context: GwnContext, ruleName: String) -> Publishers.Promise<Void, GwnError> {
+        guard let request = GrandstreamRequest.deleteRule(context: context, ruleName: ruleName).urlRequest else {
+            return Fail(error: GwnError.freeForm("FIXME")).promise
+        }
         
-        return session.dataTaskPublisher(for: request)
+        return context.session
+            .dataTaskPublisher(for: request)
             .mapError(GwnError.networkError)
             .map(\.data)
             .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in

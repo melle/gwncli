@@ -21,12 +21,12 @@ extension GwncliTests {
     
     func testParseGrandstreamConfigurationResponse() throws {
         // when
-        let sut: [GrandstreamConfigurationResponse] = try decode(resource: #function, to: [GrandstreamConfigurationResponse].self)
+        let sut: GrandstreamConfigurationResponse = try decode(resource: #function, to: GrandstreamConfigurationResponse.self)
         
         // then - this is the full configuration, we just check some of the values
-        XCTAssertEqual(sut.first?.result.first?.values.count, 33)
-
-        if case let .rule(bandwidthRule) = sut.first?.result.first?.values["rule4"] {
+        XCTAssertEqual(sut.result.first?.values.count, 33)
+        
+        if case let .rule(bandwidthRule) = sut.result.first?.values["rule4"] {
             XCTAssertEqual(bandwidthRule.anonymous, false)
             XCTAssertEqual(bandwidthRule.name, "rule4")
             XCTAssertEqual(bandwidthRule.index, 31)
@@ -96,6 +96,105 @@ extension GwncliTests {
         XCTAssertEqual(sut.ratelimitEnable, "1")
         XCTAssertEqual(sut.minirate, "6")
     }
+    
+    func testEncodLoginRequest() throws {
+        // given
+        let context = GwnContext(session: .shared,
+                                 url: URL.init(fileURLWithPath: "/tmp"),
+                                 userName: "user",
+                                 password: "password")
+        let sut = GrandstreamRequest.login(context: context)
+        
+        // when
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let result = String(data: try encoder.encode(sut), encoding: .utf8)
+        
+        // then
+        let expected = """
+                        {
+                          "id" : 2,
+                          "jsonrpc" : "2.0",
+                          "method" : "call",
+                          "params" : [
+                            "00000000000000000000000000000000",
+                            "session",
+                            "login",
+                            {
+                              "username" : "user",
+                              "password" : "password"
+                            }
+                          ]
+                        }
+                        """
+        XCTAssertEqual(result, expected)
+    }
+    
+    func testEncodGetConfigRequest() throws {
+        // given
+        let context = GwnContext(session: .shared,
+                                 url: URL.init(fileURLWithPath: "/tmp"),
+                                 userName: "user",
+                                 password: "password")
+        let sut = GrandstreamRequest.getConfig(context: context)
+        
+        // when
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let result = String(data: try encoder.encode(sut), encoding: .utf8)
+        
+        // then
+        let expected = """
+                       {
+                         "id" : 2,
+                         "jsonrpc" : "2.0",
+                         "method" : "call",
+                         "params" : [
+                           "00000000000000000000000000000000",
+                           "uci",
+                           "get",
+                           {
+                             "config" : "grandstream"
+                           }
+                         ]
+                       }
+                       """
+        XCTAssertEqual(result, expected)
+    }
+    
+    func testEncodDeleteRulegRequest() throws {
+        // given
+        let context = GwnContext(session: .shared,
+                                 url: URL.init(fileURLWithPath: "/tmp"),
+                                 userName: "user",
+                                 password: "password")
+        let sut = GrandstreamRequest.deleteRule(context: context, ruleName: "rule34")
+
+        // when
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let result = String(data: try encoder.encode(sut), encoding: .utf8)
+
+        // then
+        let expected = """
+                       {
+                         "id" : 2,
+                         "jsonrpc" : "2.0",
+                         "method" : "call",
+                         "params" : [
+                           "00000000000000000000000000000000",
+                           "uci",
+                           "delete",
+                           {
+                             "section" : "rule34",
+                             "config" : "grandstream"
+                           }
+                         ]
+                       }
+                       """
+        XCTAssertEqual(result, expected)
+    }
+
 }
 
 // MARK: - Console output
@@ -123,13 +222,13 @@ extension GwncliTests {
 }
 
 // MARK: - Helpers
- 
+
 extension GwncliTests {
     
     func decode<T: Decodable>(resource: String, to type: T.Type) throws -> T {
-          return try JSONDecoder().decode(T.self, from: data(resource: resource))
+        return try JSONDecoder().decode(T.self, from: data(resource: resource))
     }
-
+    
     func data(resource: String) throws -> Data {
         // no idea why but `Bundle.module.url(forResource: functionName, withExtension: "json")` fails here 🤷‍♂️
         let url = Bundle.module.bundleURL.appendingPathComponent("Contents/Resources/Resources/\(resource).json")
