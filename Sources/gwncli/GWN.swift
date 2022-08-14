@@ -56,8 +56,8 @@ struct GWN {
                 
                 // delete and confirm
                 return deleteRuleWithoutCheck(context: context, ruleName: ruleName)
-                    .flatMap { applyPendingChanges(url: context.url, session: context.session, token: context.sessionToken) }
-                    .flatMap { confirmPendingChanges(url: context.url, session: context.session, token: context.sessionToken) }
+                    .flatMap { applyPendingChanges(context: context) }
+                    .flatMap { confirmPendingChanges(context: context) }
             }
     }
 }
@@ -86,29 +86,13 @@ extension GWN {
             }
     }
 
-    static private func applyPendingChanges(url: URL, session: URLSession, token: String) -> Publishers.Promise<Void, GwnError> {
-        var request =  URLRequest(url: url.appendingPathComponent("/ubus/uci.apply"))
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = """
-                           {
-                             "id": 43,
-                             "jsonrpc": "2.0",
-                             "method": "call",
-                             "params": [
-                               "\(token)",
-                               "uci",
-                               "apply",
-                               {
-                                 "timeout": 10,
-                                 "rollback": true
-                               }
-                             ]
-                           }
-                           """.data(using: .utf8)
-        
-        return session.dataTaskPublisher(for: request)
+    static private func applyPendingChanges(context: GwnContext) -> Publishers.Promise<Void, GwnError> {
+        guard let request = GrandstreamRequest.apply(context: context).urlRequest else {
+            return Fail(error: GwnError.freeForm("FIXME")).promise
+        }
+
+        return context.session
+            .dataTaskPublisher(for: request)
             .mapError(GwnError.networkError)
             .map(\.data)
             .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
@@ -125,26 +109,13 @@ extension GWN {
             }
     }
     
-    static private func confirmPendingChanges(url: URL, session: URLSession, token: String) -> Publishers.Promise<Void, GwnError> {
-        var request =  URLRequest(url: url.appendingPathComponent("/ubus/uci.confirm"))
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = """
-                           {
-                             "id": 55,
-                             "jsonrpc": "2.0",
-                             "method": "call",
-                             "params": [
-                               "\(token)",
-                               "uci",
-                               "confirm",
-                               {}
-                             ]
-                           }
-                           """.data(using: .utf8)
-        
-        return session.dataTaskPublisher(for: request)
+    static private func confirmPendingChanges(context: GwnContext) -> Publishers.Promise<Void, GwnError> {
+        guard let request = GrandstreamRequest.confirm(context: context).urlRequest else {
+            return Fail(error: GwnError.freeForm("FIXME")).promise
+        }
+
+        return context.session
+            .dataTaskPublisher(for: request)
             .mapError(GwnError.networkError)
             .map(\.data)
             .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in

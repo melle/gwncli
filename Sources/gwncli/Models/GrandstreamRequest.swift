@@ -15,8 +15,8 @@ struct GrandstreamRequest: Encodable {
         case params
     }
    
-    public let urlPath: String
-    public let context: GwnContext
+    let urlPath: String
+    let context: GwnContext
     
     static func login(context: GwnContext) -> GrandstreamRequest {
         GrandstreamRequest(id: context.nextRequestId,
@@ -59,6 +59,36 @@ struct GrandstreamRequest: Encodable {
                            context: context
         )
     }
+    
+    static func apply(context: GwnContext) -> GrandstreamRequest {
+        GrandstreamRequest(id: context.nextRequestId,
+                           method: "call",
+                           params: [
+                            .value(context.sessionToken),
+                            .value("uci"),
+                            .value("apply"),
+                            .apply(.init())
+                           ],
+                           urlPath: "/ubus/uci.apply",
+                           context: context
+        )
+    }
+
+    static func confirm(context: GwnContext) -> GrandstreamRequest {
+        GrandstreamRequest(id: context.nextRequestId,
+                           method: "call",
+                           params: [
+                            .value(context.sessionToken),
+                            .value("uci"),
+                            .value("confirm"),
+                            .confirm(.init())
+                           ],
+                           urlPath: "/ubus/uci.confirm",
+                           context: context
+        )
+    }
+
+    
 
     var urlRequest: URLRequest? {
         var request =  URLRequest(url: context.url.appendingPathComponent(urlPath))
@@ -79,7 +109,9 @@ enum RequestParameters: Encodable {
     case login(Login)
     case getConfig(Config)
     case deleteRule(DeleteRule)
-    
+    case apply(Apply)
+    case confirm(Confirm)
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -91,15 +123,10 @@ enum RequestParameters: Encodable {
             try container.encode(y)
         case .deleteRule(let y):
             try container.encode(y)
-        }
-    }
-    
-    var requestPath: String {
-        switch self {
-        case .value: return ""
-        case .login: return ""
-        case .getConfig: return ""
-        case .deleteRule: return ""
+        case .apply(let y):
+            try container.encode(y)
+        case .confirm(let y):
+            try container.encode(y)
         }
     }
     
@@ -115,6 +142,15 @@ enum RequestParameters: Encodable {
     struct DeleteRule: Encodable {
         public let config: String = "grandstream"
         public let section: String
+    }
+    
+    struct Apply: Encodable {
+        public let timeout: Int = 10
+        public let rollback: Bool = true
+
+    }
+
+    struct Confirm: Encodable {
     }
 }
 

@@ -194,7 +194,71 @@ extension GwncliTests {
                        """
         XCTAssertEqual(result, expected)
     }
+    
+    func testEncodApplyRequest() throws {
+        // given
+        let context = GwnContext(session: .shared,
+                                 url: URL.init(fileURLWithPath: "/tmp"),
+                                 userName: "user",
+                                 password: "password")
+        let sut = GrandstreamRequest.apply(context: context)
 
+        // when
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let result = String(data: try encoder.encode(sut), encoding: .utf8)
+
+        // then
+        let expected = """
+                       {
+                         "id" : 2,
+                         "jsonrpc" : "2.0",
+                         "method" : "call",
+                         "params" : [
+                           "00000000000000000000000000000000",
+                           "uci",
+                           "apply",
+                           {
+                             "timeout" : 10,
+                             "rollback" : true
+                           }
+                         ]
+                       }
+                       """
+        XCTAssertEqual(result, expected)
+    }
+    
+    func testEncodConfirmRequest() throws {
+        // given
+        let context = GwnContext(session: .shared,
+                                 url: URL.init(fileURLWithPath: "/tmp"),
+                                 userName: "user",
+                                 password: "password")
+        let sut = GrandstreamRequest.confirm(context: context)
+
+        // when
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let result = String(data: try encoder.encode(sut), encoding: .utf8)
+
+        // then
+        let expected = """
+                       {
+                         "id" : 2,
+                         "jsonrpc" : "2.0",
+                         "method" : "call",
+                         "params" : [
+                           "00000000000000000000000000000000",
+                           "uci",
+                           "confirm",
+                           {
+
+                           }
+                         ]
+                       }
+                       """
+        XCTAssertEqual(result, expected)
+    }
 }
 
 // MARK: - Console output
