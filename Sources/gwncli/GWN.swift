@@ -7,7 +7,7 @@ import FoundationExtensions
 struct GWN {
     
     static func acquireSession(context: GwnContext) -> Publishers.Promise<GwnContext, GwnError> {
-        guard let request = GrandstreamRequest.login(context: context).urlRequest else {
+        guard let request = GwnRequest.login(context: context).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
         
@@ -28,15 +28,15 @@ struct GWN {
             }
     }
     
-    static func getConfiguration(context: GwnContext) -> Publishers.Promise<GrandstreamConfiguration, GwnError> {
-        guard let request = GrandstreamRequest.getConfig(context: context).urlRequest else {
+    static func getConfiguration(context: GwnContext) -> Publishers.Promise<GwnConfiguration, GwnError> {
+        guard let request = GwnRequest.getConfig(context: context).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
-
+        
         return context.session
             .dataTaskPublisher(for: request)
             .map(\.data)
-            .decode(type: GrandstreamConfigurationResponse.self, decoder: JSONDecoder())
+            .decode(type: GwnConfigurationResponse.self, decoder: JSONDecoder())
             .mapError(GwnError.networkError)
             .map(\.result)
             .compactMap{ $0.first } // grab the first array element
@@ -60,7 +60,7 @@ struct GWN {
             }
     }
     
-    static func addOrUpdateRule(context: GwnContext, mac: String, ssid: String, drate: String, urate: String) -> Publishers.Promise<GrandstreamConfiguration, GwnError> {
+    static func addOrUpdateRule(context: GwnContext, mac: String, ssid: String, drate: String, urate: String) -> Publishers.Promise<GwnConfiguration, GwnError> {
         return getConfiguration(context: context)
             .flatMap { config in
                 // rule does not exist? -> Add
@@ -93,7 +93,7 @@ struct GWN {
 extension GWN {
     
     static private func deleteRuleWithoutCheck(context: GwnContext, ruleName: String) -> Publishers.Promise<Void, GwnError> {
-        guard let request = GrandstreamRequest.deleteRule(context: context, ruleName: ruleName).urlRequest else {
+        guard let request = GwnRequest.deleteRule(context: context, ruleName: ruleName).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
         
@@ -113,23 +113,23 @@ extension GWN {
                 .failure(GwnError.freeForm("Error \(#file):\(#line)"))
             }
     }
-
+    
     static func addRule(context: GwnContext,
                         ruleName: String,
                         mac: String,
                         ssid: String,
                         drate: String,
                         urate: String) -> Publishers.Promise<Void, GwnError> {
-        guard let request = GrandstreamRequest.addRule(context: context,
-                                                       ruleName: ruleName,
-                                                       id: mac,
-                                                       idType: "mac",
-                                                       urate: urate,
-                                                       drate: drate,
-                                                       ssid: ssid).urlRequest else {
+        guard let request = GwnRequest.addRule(context: context,
+                                               ruleName: ruleName,
+                                               id: mac,
+                                               idType: "mac",
+                                               urate: urate,
+                                               drate: drate,
+                                               ssid: ssid).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
-
+        
         return context.session
             .dataTaskPublisher(for: request)
             .mapError(GwnError.networkError)
@@ -154,16 +154,16 @@ extension GWN {
                            ssid: String,
                            drate: String,
                            urate: String) -> Publishers.Promise<Void, GwnError> {
-        guard let request = GrandstreamRequest.setRule(context: context,
-                                                       ruleName: ruleName,
-                                                       id: mac,
-                                                       idType: "mac",
-                                                       urate: urate,
-                                                       drate: drate,
-                                                       ssid: ssid).urlRequest else {
+        guard let request = GwnRequest.setRule(context: context,
+                                               ruleName: ruleName,
+                                               id: mac,
+                                               idType: "mac",
+                                               urate: urate,
+                                               drate: drate,
+                                               ssid: ssid).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
-
+        
         return context.session
             .dataTaskPublisher(for: request)
             .mapError(GwnError.networkError)
@@ -180,12 +180,12 @@ extension GWN {
                 .failure(GwnError.freeForm("Error \(#file):\(#line)"))
             }
     }
-
+    
     static private func applyPendingChanges(context: GwnContext) -> Publishers.Promise<Void, GwnError> {
-        guard let request = GrandstreamRequest.apply(context: context).urlRequest else {
+        guard let request = GwnRequest.apply(context: context).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
-
+        
         return context.session
             .dataTaskPublisher(for: request)
             .mapError(GwnError.networkError)
@@ -193,7 +193,7 @@ extension GWN {
             .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
                 print("applyPendingChanges: \(String(data: data, encoding: .utf8))")
                 // FIXME: check for error from backend
-
+                
                 return Just(())
                     .mapError(absurd)
                     .promise
@@ -205,10 +205,10 @@ extension GWN {
     }
     
     static private func confirmPendingChanges(context: GwnContext) -> Publishers.Promise<Void, GwnError> {
-        guard let request = GrandstreamRequest.confirm(context: context).urlRequest else {
+        guard let request = GwnRequest.confirm(context: context).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
-
+        
         return context.session
             .dataTaskPublisher(for: request)
             .mapError(GwnError.networkError)
@@ -216,7 +216,7 @@ extension GWN {
             .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
                 print("confirmPendingChanges: \(String(data: data, encoding: .utf8))")
                 // FIXME: check for error from backend
-
+                
                 return Just(())
                     .mapError(absurd)
                     .promise

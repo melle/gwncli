@@ -19,9 +19,9 @@ extension GwncliTests {
         XCTAssertEqual(sut.session, "e6fab30a2420c3396abd76d71d87ef07")
     }
     
-    func testParseGrandstreamConfigurationResponse() throws {
+    func testParseGwnConfigurationResponse() throws {
         // when
-        let sut: GrandstreamConfigurationResponse = try decode(resource: #function, to: GrandstreamConfigurationResponse.self)
+        let sut: GwnConfigurationResponse = try decode(resource: #function, to: GwnConfigurationResponse.self)
         
         // then - this is the full configuration, we just check some of the values
         XCTAssertEqual(sut.result.first?.values.count, 33)
@@ -103,7 +103,7 @@ extension GwncliTests {
                                  url: URL.init(fileURLWithPath: "/tmp"),
                                  userName: "user",
                                  password: "password")
-        let sut = GrandstreamRequest.login(context: context)
+        let sut = GwnRequest.login(context: context)
         
         // when
         let encoder = JSONEncoder()
@@ -136,7 +136,7 @@ extension GwncliTests {
                                  url: URL.init(fileURLWithPath: "/tmp"),
                                  userName: "user",
                                  password: "password")
-        let sut = GrandstreamRequest.getConfig(context: context)
+        let sut = GwnRequest.getConfig(context: context)
         
         // when
         let encoder = JSONEncoder()
@@ -162,19 +162,19 @@ extension GwncliTests {
         XCTAssertEqual(result, expected)
     }
     
-    func testEncodDeleteRulegRequest() throws {
+    func testEncodDeleteRuleRequest() throws {
         // given
         let context = GwnContext(session: .shared,
                                  url: URL.init(fileURLWithPath: "/tmp"),
                                  userName: "user",
                                  password: "password")
-        let sut = GrandstreamRequest.deleteRule(context: context, ruleName: "rule34")
-
+        let sut = GwnRequest.deleteRule(context: context, ruleName: "rule34")
+        
         // when
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
-
+        
         // then
         let expected = """
                        {
@@ -201,13 +201,13 @@ extension GwncliTests {
                                  url: URL.init(fileURLWithPath: "/tmp"),
                                  userName: "user",
                                  password: "password")
-        let sut = GrandstreamRequest.apply(context: context)
-
+        let sut = GwnRequest.apply(context: context)
+        
         // when
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
-
+        
         // then
         let expected = """
                        {
@@ -234,13 +234,13 @@ extension GwncliTests {
                                  url: URL.init(fileURLWithPath: "/tmp"),
                                  userName: "user",
                                  password: "password")
-        let sut = GrandstreamRequest.confirm(context: context)
-
+        let sut = GwnRequest.confirm(context: context)
+        
         // when
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
-
+        
         // then
         let expected = """
                        {
@@ -252,7 +252,7 @@ extension GwncliTests {
                            "uci",
                            "confirm",
                            {
-
+                       
                            }
                          ]
                        }
@@ -266,7 +266,7 @@ extension GwncliTests {
 extension GwncliTests {
     func testBandwidthRulesFormatted() throws {
         // given
-        let configResponse: [GrandstreamConfigurationResponse] = try decode(resource: #function, to: [GrandstreamConfigurationResponse].self)
+        let configResponse: [GwnConfigurationResponse] = try decode(resource: #function, to: [GwnConfigurationResponse].self)
         
         // when
         guard let sut = configResponse.first?.result.first?.bandwidthRulesFormatted else { XCTFail() ; return }

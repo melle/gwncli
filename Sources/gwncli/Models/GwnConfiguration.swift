@@ -3,29 +3,29 @@
 import Foundation
 
 // JSON response when querying the configuration
-struct GrandstreamConfigurationResponse: Decodable {
+struct GwnConfigurationResponse: Decodable {
     public let jsonrpc: String
     public let id: Int
-    @LossyCodableList public var result: [GrandstreamConfiguration]
+    @LossyCodableList public var result: [GwnConfiguration]
 }
 
-struct GrandstreamConfiguration: Decodable {
-    public let values: Dictionary<String, GrandstreamConfigEntry>
+struct GwnConfiguration: Decodable {
+    public let values: Dictionary<String, GwnConfigEntry>
     
     enum CodingKeys: String, CodingKey {
         case values
     }
 }
 
-extension GrandstreamConfiguration {
+extension GwnConfiguration {
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: GrandstreamConfiguration.CodingKeys.self)
-        let values = try container.decode(Dictionary<String, GrandstreamConfigEntry>.self, forKey: .values)
+        let container = try decoder.container(keyedBy: GwnConfiguration.CodingKeys.self)
+        let values = try container.decode(Dictionary<String, GwnConfigEntry>.self, forKey: .values)
         self = .init(values: values)
     }
 }
 
-extension GrandstreamConfiguration {
+extension GwnConfiguration {
     /// Returns all config entries that represent a bandwidth rule.
     public var bandwidthRules: [BandwidthRule] {
         self.values.values.compactMap{ $0.rule }
@@ -36,10 +36,10 @@ extension GrandstreamConfiguration {
             .sorted(by: { $0.name < $1.name })
             .last?
             .name else {
-                // no rules defined, define the first one
-                return "rule0"
-            }
-            
+            // no rules defined, define the first one
+            return "rule0"
+        }
+        
         let indexString = lastRule[String.Index(utf16Offset: 4, in: lastRule)...]
         guard var index = Int(indexString) else {
             return "rule0"

@@ -2,7 +2,7 @@
 
 import Foundation
 
-enum GrandstreamConfigEntry: Decodable {
+enum GwnConfigEntry: Decodable {
     case ssid(SsidConfig)
     case rule(BandwidthRule)
     case ignored(String)
@@ -12,7 +12,7 @@ enum GrandstreamConfigEntry: Decodable {
     }
     
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: GrandstreamConfigEntry.CodingKeys.self)
+        let container = try decoder.container(keyedBy: GwnConfigEntry.CodingKeys.self)
         let typeString = try container.decode(String.self, forKey: .type)
         switch typeString {
         case "bwctrl-rule":
@@ -25,7 +25,7 @@ enum GrandstreamConfigEntry: Decodable {
     }
 }
 
-extension GrandstreamConfigEntry {
+extension GwnConfigEntry {
     public var rule: BandwidthRule? {
         switch self {
         case let .rule(bandwidthRule): return bandwidthRule
