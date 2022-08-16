@@ -8,7 +8,7 @@ struct GWN {
     
     static func acquireSession(context: GwnContext) -> Publishers.Promise<GwnContext, GwnError> {
         guard let request = GrandstreamRequest.login(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME")).promise
+            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
         
         return context.session
@@ -30,7 +30,7 @@ struct GWN {
     
     static func getConfiguration(context: GwnContext) -> Publishers.Promise<GrandstreamConfiguration, GwnError> {
         guard let request = GrandstreamRequest.getConfig(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME")).promise
+            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
 
         return context.session
@@ -43,11 +43,10 @@ struct GWN {
             .promise {
                 .failure(GwnError.emptyLoginResponse)
             }
-        
     }
     
     static func deleteRule(context: GwnContext, ruleName: String) -> Publishers.Promise<Void, GwnError> {
-        return getConfiguration(context: context)
+        getConfiguration(context: context)
             .flatMap { config in
                 // only delete rules that exist :)
                 guard config.bandwidthRules.contains(where: { $0.name == ruleName }) else {
@@ -60,13 +59,42 @@ struct GWN {
                     .flatMap { confirmPendingChanges(context: context) }
             }
     }
+    
+    static func addOrUpdateRule(context: GwnContext, mac: String, ssid: String, drate: String, urate: String) -> Publishers.Promise<GrandstreamConfiguration, GwnError> {
+        return getConfiguration(context: context)
+            .flatMap { config in
+                // rule does not exist? -> Add
+                guard let existingRule = config.bandwidthRules.first(where: { $0.id.localizedLowercase == mac.localizedLowercase }) else {
+                    return addRule(context: context,
+                                   ruleName: config.nextBandwidthRuleName,
+                                   mac: mac,
+                                   ssid: ssid,
+                                   drate: drate,
+                                   urate: urate)
+                    .flatMap { applyPendingChanges(context: context) }
+                    .flatMap { confirmPendingChanges(context: context) }
+                    .flatMap { getConfiguration(context: context) }
+                }
+                
+                // rule exists? -> update
+                return updateRule(context: context,
+                                  ruleName: existingRule.name,
+                                  mac: mac,
+                                  ssid: ssid,
+                                  drate: drate,
+                                  urate: urate)
+                .flatMap { applyPendingChanges(context: context) }
+                .flatMap { confirmPendingChanges(context: context) }
+                .flatMap { getConfiguration(context: context) }
+            }
+    }
 }
 
 extension GWN {
     
     static private func deleteRuleWithoutCheck(context: GwnContext, ruleName: String) -> Publishers.Promise<Void, GwnError> {
         guard let request = GrandstreamRequest.deleteRule(context: context, ruleName: ruleName).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME")).promise
+            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
         
         return context.session
@@ -82,13 +110,80 @@ extension GWN {
             }
             .promise {
                 // in case of an empty promise
-                .failure(GwnError.freeForm("bar"))
+                .failure(GwnError.freeForm("Error \(#file):\(#line)"))
+            }
+    }
+
+    static func addRule(context: GwnContext,
+                        ruleName: String,
+                        mac: String,
+                        ssid: String,
+                        drate: String,
+                        urate: String) -> Publishers.Promise<Void, GwnError> {
+        guard let request = GrandstreamRequest.addRule(context: context,
+                                                       ruleName: ruleName,
+                                                       id: mac,
+                                                       idType: "mac",
+                                                       urate: urate,
+                                                       drate: drate,
+                                                       ssid: ssid).urlRequest else {
+            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
+        }
+
+        return context.session
+            .dataTaskPublisher(for: request)
+            .mapError(GwnError.networkError)
+            .map(\.data)
+            .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
+                print("addRule: \(String(data: data, encoding: .utf8))")
+                // FIXME: check for error from backend
+                return Just(())
+                    .mapError(absurd)
+                    .promise
+            }
+            .promise {
+                // in case of an empty promise
+                .failure(GwnError.freeForm("Error \(#file):\(#line)"))
+            }
+    }
+    
+    
+    static func updateRule(context: GwnContext,
+                           ruleName: String,
+                           mac: String,
+                           ssid: String,
+                           drate: String,
+                           urate: String) -> Publishers.Promise<Void, GwnError> {
+        guard let request = GrandstreamRequest.setRule(context: context,
+                                                       ruleName: ruleName,
+                                                       id: mac,
+                                                       idType: "mac",
+                                                       urate: urate,
+                                                       drate: drate,
+                                                       ssid: ssid).urlRequest else {
+            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
+        }
+
+        return context.session
+            .dataTaskPublisher(for: request)
+            .mapError(GwnError.networkError)
+            .map(\.data)
+            .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
+                print("setRule: \(String(data: data, encoding: .utf8))")
+                // FIXME: check for error from backend
+                return Just(())
+                    .mapError(absurd)
+                    .promise
+            }
+            .promise {
+                // in case of an empty promise
+                .failure(GwnError.freeForm("Error \(#file):\(#line)"))
             }
     }
 
     static private func applyPendingChanges(context: GwnContext) -> Publishers.Promise<Void, GwnError> {
         guard let request = GrandstreamRequest.apply(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME")).promise
+            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
 
         return context.session
@@ -105,13 +200,13 @@ extension GWN {
             }
             .promise {
                 // in case of an empty promise
-                .failure(GwnError.freeForm("bar"))
+                .failure(GwnError.freeForm("Error \(#file):\(#line)"))
             }
     }
     
     static private func confirmPendingChanges(context: GwnContext) -> Publishers.Promise<Void, GwnError> {
         guard let request = GrandstreamRequest.confirm(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME")).promise
+            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
 
         return context.session
@@ -128,7 +223,7 @@ extension GWN {
             }
             .promise {
                 // in case of an empty promise
-                .failure(GwnError.freeForm("bar"))
+                .failure(GwnError.freeForm("Error \(#file):\(#line)"))
             }
     }
 }

@@ -85,9 +85,43 @@ extension Gwncli {
         )
 
         @OptionGroup var options: CommonOptions
-        
+
+        @Option(help: "Hardware address of the device")
+        var mac: String
+        @Option(help: "SSID where the rule should be applied (must be an existing SSID)")
+        var ssid: String
+        @Option(help: "Download-Rate (MBits/kBits)")
+        var drate: String
+        @Option(help: "Upload-Rate (MBits/kBits)")
+        var urate: String
+
         func run() throws {
-            
+            guard let gwnUrl = URL(string: options.url) else {
+                throw GwnError.freeForm("Invalid url \(options.url)")
+            }
+            var cancellables: Set<AnyCancellable> = .init()
+            let session = URLSession(configuration: URLSession.shared.configuration,
+                                     delegate: TlsWarningsIgnoringUrlSessionDelegate(),
+                                     delegateQueue: nil)
+            let context = GwnContext(session: session,
+                                     url: gwnUrl,
+                                     userName: options.username,
+                                     password: options.password)
+            GWN.acquireSession(context: context)
+                .flatMap { GWN.addOrUpdateRule(context: $0, mac: mac, ssid: ssid, drate: drate, urate: urate) }
+                .sink(receiveCompletion: { completion in
+                    switch completion {
+                    case let .failure(gwnError):
+                        ListRules.exit(withError: gwnError)
+                    case .finished:
+                        ListRules.exit()
+                    }
+                },receiveValue: { configuration in
+                    print(configuration.bandwidthRulesFormatted)
+                })
+                .store(in: &cancellables)
+            RunLoop.current.run()
+
         }
     }
     

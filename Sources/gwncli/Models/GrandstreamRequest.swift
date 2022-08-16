@@ -52,14 +52,68 @@ struct GrandstreamRequest: Encodable {
                            params: [
                             .value(context.sessionToken),
                             .value("uci"),
-                            .value("delete"),
+                            .value("add"),
                             .deleteRule(.init(section: ruleName))
                            ],
-                           urlPath: "/ubus/uci.delete",
+                           urlPath: "/ubus/uci.add",
+                           context: context
+        )
+    }
+
+    static func addRule(context: GwnContext,
+                        ruleName: String,
+                        id: String,
+                        idType: String,
+                        urate: String,
+                        drate: String,
+                        ssid: String) -> GrandstreamRequest {
+        GrandstreamRequest(id: context.nextRequestId,
+                           method: "call",
+                           params: [
+                            .value(context.sessionToken),
+                            .value("uci"),
+                            .value("add"),
+                            .addRule(.init(values: .init(id: id,
+                                                         enabled: 1,
+                                                         idType: idType,
+                                                         urate: urate,
+                                                         drate: drate,
+                                                         ssid: ssid),
+                                           name: ruleName))
+                           ],
+                           urlPath: "/ubus/uci.add",
                            context: context
         )
     }
     
+    static func setRule(context: GwnContext,
+                        ruleName: String,
+                        id: String,
+                        idType: String,
+                        urate: String,
+                        drate: String,
+                        ssid: String) -> GrandstreamRequest {
+        GrandstreamRequest(id: context.nextRequestId,
+                           method: "call",
+                           params: [
+                            .value(context.sessionToken),
+                            .value("uci"),
+                            .value("set"),
+                            .setRule(.init(section: ruleName,
+                                           values: .init(id: id,
+                                                         enabled: 1,
+                                                         idType: idType,
+                                                         urate: urate,
+                                                         drate: drate,
+                                                         ssid: ssid)
+                                          )
+                                     )
+                           ],
+                           urlPath: "/ubus/uci.set",
+                           context: context
+        )
+    }
+
     static func apply(context: GwnContext) -> GrandstreamRequest {
         GrandstreamRequest(id: context.nextRequestId,
                            method: "call",
@@ -109,6 +163,8 @@ enum RequestParameters: Encodable {
     case login(Login)
     case getConfig(Config)
     case deleteRule(DeleteRule)
+    case addRule(AddRule)
+    case setRule(SetRule)
     case apply(Apply)
     case confirm(Confirm)
 
@@ -117,16 +173,20 @@ enum RequestParameters: Encodable {
         switch self {
         case .value(let x):
             try container.encode(x)
-        case .login(let y):
-            try container.encode(y)
-        case .getConfig(let y):
-            try container.encode(y)
-        case .deleteRule(let y):
-            try container.encode(y)
-        case .apply(let y):
-            try container.encode(y)
-        case .confirm(let y):
-            try container.encode(y)
+        case .login(let x):
+            try container.encode(x)
+        case .getConfig(let x):
+            try container.encode(x)
+        case .deleteRule(let x):
+            try container.encode(x)
+        case .addRule(let x):
+            try container.encode(x)
+        case .setRule(let x):
+            try container.encode(x)
+        case .apply(let x):
+            try container.encode(x)
+        case .confirm(let x):
+            try container.encode(x)
         }
     }
     
@@ -143,7 +203,39 @@ enum RequestParameters: Encodable {
         public let config: String = "grandstream"
         public let section: String
     }
-    
+
+    struct AddRule: Encodable {
+        public let config: String = "grandstream"
+        public let values: RuleModification
+        public let type: String = "bwctrl-rule"
+        public let name: String
+    }
+
+    struct SetRule: Encodable {
+        public let config: String = "grandstream"
+        /// rule name
+        public let section: String
+        public let values: RuleModification
+    }
+
+    struct RuleModification: Encodable {
+        let id: String
+        let enabled: Int
+        let idType: String
+        let urate: String
+        let drate: String
+        let ssid: String
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case enabled
+            case idType = "type"
+            case urate
+            case drate
+            case ssid = "ssid_id"
+        }
+    }
+
     struct Apply: Encodable {
         public let timeout: Int = 10
         public let rollback: Bool = true
