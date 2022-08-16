@@ -259,6 +259,27 @@ extension GwncliTests {
                        """
         XCTAssertEqual(result, expected)
     }
+    
+    func testDecodeGwnResponse() throws {
+        let json = """
+                   {
+                      "jsonrpc": "2.0",
+                      "id": 4,
+                      "result": [
+                        0,
+                        {
+                          "section": "rule6"
+                        }
+                      ]
+                   }
+                   """.data(using: .utf8)!
+        
+        // when
+        let response = try JSONDecoder().decode(GwnResponse.self, from: json)
+        
+        // then
+        XCTAssertTrue(response.isSuccess)
+    }
 }
 
 // MARK: - Console output

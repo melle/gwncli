@@ -99,15 +99,10 @@ extension GWN {
         
         return context.session
             .dataTaskPublisher(for: request)
-            .mapError(GwnError.networkError)
             .map(\.data)
-            .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
-                print("deleteRuleWithoutCheck: \(String(data: data, encoding: .utf8))")
-                // FIXME: check for error from backend
-                return Just(())
-                    .mapError(absurd)
-                    .promise
-            }
+            .decode(type: GwnResponse.self, decoder: JSONDecoder())
+            .mapError(GwnError.networkError)
+            .flatMap { evaluateResponse(response: $0, message: "Delete rule \(ruleName) failed: \($0)") }
             .promise {
                 // in case of an empty promise
                 .failure(GwnError.freeForm("Error \(#file):\(#line)"))
@@ -132,15 +127,10 @@ extension GWN {
         
         return context.session
             .dataTaskPublisher(for: request)
-            .mapError(GwnError.networkError)
             .map(\.data)
-            .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
-                print("addRule: \(String(data: data, encoding: .utf8))")
-                // FIXME: check for error from backend
-                return Just(())
-                    .mapError(absurd)
-                    .promise
-            }
+            .decode(type: GwnResponse.self, decoder: JSONDecoder())
+            .mapError(GwnError.networkError)
+            .flatMap { evaluateResponse(response: $0, message: "Addd rule \(ruleName) failed: \($0)") }
             .promise {
                 // in case of an empty promise
                 .failure(GwnError.freeForm("Error \(#file):\(#line)"))
@@ -166,15 +156,10 @@ extension GWN {
         
         return context.session
             .dataTaskPublisher(for: request)
-            .mapError(GwnError.networkError)
             .map(\.data)
-            .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
-                print("setRule: \(String(data: data, encoding: .utf8))")
-                // FIXME: check for error from backend
-                return Just(())
-                    .mapError(absurd)
-                    .promise
-            }
+            .decode(type: GwnResponse.self, decoder: JSONDecoder())
+            .mapError(GwnError.networkError)
+            .flatMap { evaluateResponse(response: $0, message: "Set rule \(ruleName) failed: \($0)") }
             .promise {
                 // in case of an empty promise
                 .failure(GwnError.freeForm("Error \(#file):\(#line)"))
@@ -188,16 +173,10 @@ extension GWN {
         
         return context.session
             .dataTaskPublisher(for: request)
-            .mapError(GwnError.networkError)
             .map(\.data)
-            .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
-                print("applyPendingChanges: \(String(data: data, encoding: .utf8))")
-                // FIXME: check for error from backend
-                
-                return Just(())
-                    .mapError(absurd)
-                    .promise
-            }
+            .decode(type: GwnResponse.self, decoder: JSONDecoder())
+            .mapError(GwnError.networkError)
+            .flatMap { evaluateResponse(response: $0, message: "Apply failed: \($0)") }
             .promise {
                 // in case of an empty promise
                 .failure(GwnError.freeForm("Error \(#file):\(#line)"))
@@ -211,19 +190,24 @@ extension GWN {
         
         return context.session
             .dataTaskPublisher(for: request)
-            .mapError(GwnError.networkError)
             .map(\.data)
-            .flatMap { (data: Data) -> Publishers.Promise<Void, GwnError> in
-                print("confirmPendingChanges: \(String(data: data, encoding: .utf8))")
-                // FIXME: check for error from backend
-                
-                return Just(())
-                    .mapError(absurd)
-                    .promise
-            }
+            .decode(type: GwnResponse.self, decoder: JSONDecoder())
+            .mapError(GwnError.networkError)
+            .flatMap { evaluateResponse(response: $0, message: "Confirm failed: \($0)") }
             .promise {
                 // in case of an empty promise
                 .failure(GwnError.freeForm("Error \(#file):\(#line)"))
             }
+    }
+    
+    private static func evaluateResponse(response: GwnResponse, message: String) -> Publishers.Promise<Void, GwnError> {
+        guard response.isSuccess else {
+            return Fail(error: GwnError.freeForm(message))
+                .promise
+        }
+        
+        return Just(())
+            .mapError(absurd)
+            .promise
     }
 }
