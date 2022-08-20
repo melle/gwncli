@@ -126,7 +126,7 @@ extension GWN {
                                                idType: "mac",
                                                urate: urate,
                                                drate: drate,
-                                               ssid: ssid).urlRequest else {
+                                               ssidId: ssid).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
         
@@ -155,7 +155,7 @@ extension GWN {
                                                idType: "mac",
                                                urate: urate,
                                                drate: drate,
-                                               ssid: ssid).urlRequest else {
+                                               ssidId: ssid).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise
         }
         

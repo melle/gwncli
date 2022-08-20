@@ -66,7 +66,7 @@ struct GwnRequest: Encodable {
                         idType: String,
                         urate: String,
                         drate: String,
-                        ssid: String) -> GwnRequest {
+                        ssidId: String) -> GwnRequest {
         GwnRequest(id: context.nextRequestId,
                    method: "call",
                    params: [
@@ -78,7 +78,7 @@ struct GwnRequest: Encodable {
                                                  idType: idType,
                                                  urate: urate,
                                                  drate: drate,
-                                                 ssid: ssid),
+                                                 ssidId: ssidId),
                                    name: ruleName))
                    ],
                    urlPath: "/ubus/uci.add",
@@ -92,7 +92,7 @@ struct GwnRequest: Encodable {
                         idType: String,
                         urate: String,
                         drate: String,
-                        ssid: String) -> GwnRequest {
+                        ssidId: String) -> GwnRequest {
         GwnRequest(id: context.nextRequestId,
                    method: "call",
                    params: [
@@ -105,7 +105,7 @@ struct GwnRequest: Encodable {
                                                  idType: idType,
                                                  urate: urate,
                                                  drate: drate,
-                                                 ssid: ssid)
+                                                 ssidId: ssidId)
                                   )
                     )
                    ],
@@ -224,7 +224,7 @@ enum RequestParameters: Encodable {
         let idType: String
         let urate: String
         let drate: String
-        let ssid: String
+        let ssidId: String
         
         enum CodingKeys: String, CodingKey {
             case id
@@ -232,7 +232,7 @@ enum RequestParameters: Encodable {
             case idType = "type"
             case urate
             case drate
-            case ssid = "ssid_id"
+            case ssidId = "ssid_id"
         }
     }
     
