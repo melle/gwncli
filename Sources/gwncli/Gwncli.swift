@@ -124,54 +124,6 @@ extension Gwncli {
 
         }
     }
-    
-    /*
-     ==== ADD ====
-     
-     POST /ubus/uci.add HTTP/1.1
-     {"id":35,"jsonrpc":"2.0","method":"call","params":["318597ec028684aae36952d981e9fbbf","uci","add",{"config":"grandstream","values":{"id":"AA:BB:CC:DD:EE:FF","enabled":1,"type":"mac","urate":"11Mbps","drate":"22Kbps","ssid_id":"ssid1"},"type":"bwctrl-rule","name":"rule4"}]}
-     
-     RESPONSE
-     {
-         "jsonrpc": "2.0",
-         "id": 35,
-         "result": [
-             0,
-             {
-                 "section": "rule4"
-             }
-         ]
-     }
-     
-     GET Config
-     [{"id":36,"jsonrpc":"2.0","method":"call","params":["318597ec028684aae36952d981e9fbbf","uci","get",{"config":"grandstream"}]}]
-     
-     POST /ubus/uci.changes HTTP/1.1
-     {"id":37,"jsonrpc":"2.0","method":"call","params":["318597ec028684aae36952d981e9fbbf","uci","changes",{}]}
-     
-     POST /ubus/uci.apply HTTP/1.1
-     {"id":38,"jsonrpc":"2.0","method":"call","params":["318597ec028684aae36952d981e9fbbf","uci","apply",{"timeout":10,"rollback":true}]}
-     
-     POST /ubus/uci.confirm HTTP/1.1
-     {"id":39,"jsonrpc":"2.0","method":"call","params":["318597ec028684aae36952d981e9fbbf","uci","confirm",{}]}
-     
-     RESPONSE
-     {
-         "jsonrpc": "2.0",
-         "id": 39,
-         "result": [
-             0
-         ]
-     }
-     
-     ==== UPDATE ====
-     
-     POST /ubus/uci.set HTTP/1.1
-     {"id":57,"jsonrpc":"2.0","method":"call","params":["318597ec028684aae36952d981e9fbbf","uci","set",{"config":"grandstream","section":"rule4","values":{"enabled":1,"urate":"33Kbps","drate":"44Mbps"}}]}
-     Apply + confirm
-     
-     */
-
 }
 
 // MARK: - Delete rule
