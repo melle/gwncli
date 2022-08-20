@@ -211,8 +211,8 @@ extension Gwncli {
                     case .finished:
                         DeleteRule.exit()
                     }
-                }, receiveValue: { (void: Void) in
-                    
+                }, receiveValue: { configuration in
+                    print(configuration.bandwidthRulesFormatted)
                 })
                 .store(in: &cancellables)
             RunLoop.current.run()

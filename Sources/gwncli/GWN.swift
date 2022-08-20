@@ -45,18 +45,19 @@ struct GWN {
             }
     }
     
-    static func deleteRule(context: GwnContext, ruleName: String) -> Publishers.Promise<Void, GwnError> {
+    static func deleteRule(context: GwnContext, ruleName: String) -> Publishers.Promise<GwnConfiguration, GwnError> {
         getConfiguration(context: context)
             .flatMap { config in
                 // only delete rules that exist :)
                 guard config.bandwidthRules.contains(where: { $0.name == ruleName }) else {
-                    return Publishers.Promise<Void, GwnError>(error: GwnError.ruleNotFound(ruleName))
+                    return Publishers.Promise<GwnConfiguration, GwnError>(error: GwnError.ruleNotFound(ruleName))
                 }
                 
                 // delete and confirm
                 return deleteRuleWithoutCheck(context: context, ruleName: ruleName)
                     .flatMap { applyPendingChanges(context: context) }
                     .flatMap { confirmPendingChanges(context: context) }
+                    .flatMap { getConfiguration(context: context) }
             }
     }
     
