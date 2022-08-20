@@ -60,15 +60,19 @@ struct GWN {
             }
     }
     
-    static func addOrUpdateRule(context: GwnContext, mac: String, ssid: String, drate: String, urate: String) -> Publishers.Promise<GwnConfiguration, GwnError> {
+    static func addOrUpdateRule(context: GwnContext, mac: String, ssidId: String, drate: String, urate: String) -> Publishers.Promise<GwnConfiguration, GwnError> {
+        
         return getConfiguration(context: context)
             .flatMap { config in
-                // rule does not exist? -> Add
-                guard let existingRule = config.bandwidthRules.first(where: { $0.id.localizedLowercase == mac.localizedLowercase }) else {
+                // check if rule for SSID-ID and MAC exist? -> Add, if nothing is found
+                guard let existingRule = config.bandwidthRules.first(where: {
+                    $0.id.localizedLowercase == mac.localizedLowercase &&
+                    $0.ssidId == ssidId
+                }) else {
                     return addRule(context: context,
                                    ruleName: config.nextBandwidthRuleName,
                                    mac: mac,
-                                   ssid: ssid,
+                                   ssid: ssidId,
                                    drate: drate,
                                    urate: urate)
                     .flatMap { applyPendingChanges(context: context) }
@@ -80,7 +84,7 @@ struct GWN {
                 return updateRule(context: context,
                                   ruleName: existingRule.name,
                                   mac: mac,
-                                  ssid: ssid,
+                                  ssid: ssidId,
                                   drate: drate,
                                   urate: urate)
                 .flatMap { applyPendingChanges(context: context) }

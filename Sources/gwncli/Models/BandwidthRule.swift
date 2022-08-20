@@ -12,7 +12,7 @@ struct BandwidthRule: Decodable {
     let idType: String
     let urate: String
     let drate: String
-    let ssid: String
+    let ssidId: String
     
     enum CodingKeys: String, CodingKey {
         case anonymous = ".anonymous"
@@ -24,13 +24,16 @@ struct BandwidthRule: Decodable {
         case idType = "type"
         case urate
         case drate
-        case ssid = "ssid_id"
+        case ssidId = "ssid_id"
     }
 }
 
 extension BandwidthRule: CustomStringConvertible {
     var description: String {
-        "\(name)\t\((enabled == "1" ? "[enabled] " : "[disabled]"))\tU: \(urate)\tD:\(drate)\tSSID: \(ssid)\t\(idType)\t\(id)"
+        "\(name)\t\((enabled == "1" ? "[enabled] " : "[disabled]"))\tU: \(urate)\tD:\(drate)\t\(idType)\t\(id)\tSSID: \(ssidId)"
     }
     
+    func description(humanReadableSsid: String) -> String {
+        "\(name)\t\((enabled == "1" ? "[enabled] " : "[disabled]"))\tU: \(urate)\tD:\(drate)\t\(idType): \(id)\tSSID: \(ssidId) \"\(humanReadableSsid)\""
+    }
 }

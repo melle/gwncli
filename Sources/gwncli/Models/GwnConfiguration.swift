@@ -30,7 +30,12 @@ extension GwnConfiguration {
     public var bandwidthRules: [BandwidthRule] {
         self.values.values.compactMap{ $0.rule }
     }
-    
+
+    /// Returns all config entries that represent an SSID definition
+    public var ssids: [SsidConfig] {
+        self.values.values.compactMap{ $0.ssid }
+    }
+
     public var nextBandwidthRuleName: String {
         guard let lastRule = bandwidthRules
             .sorted(by: { $0.name < $1.name })
@@ -49,13 +54,18 @@ extension GwnConfiguration {
         return "rule\(index)"
     }
     
-    /// Lists all bandwidth rules properly formatted for console outpu
+    /// Return the SSID string for the give ID or the ID as fallback.
+    public func ssidStringFor(id: String) -> String {
+        ssids.first { $0.id == id }?.ssid ?? id
+    }
+
+    /// Lists all bandwidth rules properly formatted for console output
     public var bandwidthRulesFormatted: String {
         bandwidthRules
             .sorted(by: { lhs, rhs in
-                (lhs.id, lhs.ssid) < (rhs.id, rhs.ssid)
+                (lhs.id, lhs.ssidId) < (rhs.id, rhs.ssidId)
             })
-            .map { $0.description}
+            .map { $0.description(humanReadableSsid: ssidStringFor(id: $0.ssidId )) }
             .joined(separator: "\n")
     }
 }

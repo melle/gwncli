@@ -35,7 +35,7 @@ extension GwncliTests {
             XCTAssertEqual(bandwidthRule.idType, "mac")
             XCTAssertEqual(bandwidthRule.urate, "123Kbps")
             XCTAssertEqual(bandwidthRule.drate, "456Kbps")
-            XCTAssertEqual(bandwidthRule.ssid, "ssid0")
+            XCTAssertEqual(bandwidthRule.ssidId, "ssid0")
         } else {
             XCTFail("could not decode json")
         }
@@ -55,7 +55,7 @@ extension GwncliTests {
         XCTAssertEqual(sut.first?.value.idType, "mac")
         XCTAssertEqual(sut.first?.value.urate, "123Kbps")
         XCTAssertEqual(sut.first?.value.drate, "456Kbps")
-        XCTAssertEqual(sut.first?.value.ssid, "ssid0")
+        XCTAssertEqual(sut.first?.value.ssidId, "ssid0")
     }
     
     func testDecodeSSIDConfig() throws {
@@ -295,12 +295,12 @@ extension GwncliTests {
         // then - rules must appear properly formatted in the right order
         XCTAssertEqual(sut,
                        """
-                       rule4\t[enabled] \tU: 123Kbps\tD:456Kbps\tSSID: ssid0\tmac\t00:11:22:33:44:55
-                       rule5\t[enabled] \tU: 123Kbps\tD:456Kbps\tSSID: ssid1\tmac\t00:11:22:33:44:55
-                       rule2\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid0\tmac\t6C:C4:D5:50:95:F1
-                       rule3\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid1\tmac\t6C:C4:D5:50:95:F1
-                       rule0\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid0\tmac\t9C:FC:28:D1:F7:20
-                       rule1\t[enabled] \tU: 96Kbps\tD:96Kbps\tSSID: ssid1\tmac\t9C:FC:28:D1:F7:20
+                       rule4\t[enabled] \tU: 123Kbps\tD:456Kbps\tmac: 00:11:22:33:44:55\tSSID: ssid0 "Paul-Motz-19"
+                       rule5\t[enabled] \tU: 123Kbps\tD:456Kbps\tmac: 00:11:22:33:44:55\tSSID: ssid1 "Paul-Motz-34"
+                       rule2\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 6C:C4:D5:50:95:F1\tSSID: ssid0 "Paul-Motz-19"
+                       rule3\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 6C:C4:D5:50:95:F1\tSSID: ssid1 "Paul-Motz-34"
+                       rule0\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 9C:FC:28:D1:F7:20\tSSID: ssid0 "Paul-Motz-19"
+                       rule1\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 9C:FC:28:D1:F7:20\tSSID: ssid1 "Paul-Motz-34"
                        """
         )
     }

@@ -86,13 +86,13 @@ extension Gwncli {
 
         @OptionGroup var options: CommonOptions
 
-        @Option(help: "Hardware address of the device")
+        @Option(help: "Hardware address of the device, i.e. AA:BB:CC:DD:EE:FF")
         var mac: String
-        @Option(help: "SSID where the rule should be applied (must be an existing SSID)")
+        @Option(help: "SSID-id where the rule should be applied (must be an existing SSID, i.e. ssid0)")
         var ssid: String
-        @Option(help: "Download-Rate (MBits/kBits)")
+        @Option(help: "Download-Rate (Mbps/kBps), i.e. 128kBps")
         var drate: String
-        @Option(help: "Upload-Rate (MBits/kBits)")
+        @Option(help: "Upload-Rate (Mbps/kBps), i.e. 1Mbps")
         var urate: String
 
         func run() throws {
@@ -108,7 +108,7 @@ extension Gwncli {
                                      userName: options.username,
                                      password: options.password)
             GWN.acquireSession(context: context)
-                .flatMap { GWN.addOrUpdateRule(context: $0, mac: mac, ssid: ssid, drate: drate, urate: urate) }
+                .flatMap { GWN.addOrUpdateRule(context: $0, mac: mac, ssidId: ssid, drate: drate, urate: urate) }
                 .sink(receiveCompletion: { completion in
                     switch completion {
                     case let .failure(gwnError):
@@ -116,7 +116,7 @@ extension Gwncli {
                     case .finished:
                         ListRules.exit()
                     }
-                },receiveValue: { configuration in
+                }, receiveValue: { configuration in
                     print(configuration.bandwidthRulesFormatted)
                 })
                 .store(in: &cancellables)
