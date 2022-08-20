@@ -90,15 +90,23 @@ extension Gwncli {
         var mac: String
         @Option(help: "SSID-id where the rule should be applied (must be an existing SSID, i.e. ssid0)")
         var ssid: String
-        @Option(help: "Download-Rate (Mbps/kBps), i.e. 128kBps")
+        @Option(help: "Download-Rate (Mbps/Kbps), i.e. 128Kbps")
         var drate: String
-        @Option(help: "Upload-Rate (Mbps/kBps), i.e. 1Mbps")
+        @Option(help: "Upload-Rate (Mbps/Kbps), i.e. 1Mbps")
         var urate: String
 
         func run() throws {
             guard let gwnUrl = URL(string: options.url) else {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
+            // GWN is very picky about the units, only Mbps and Kbps in the right case are allowed.
+            guard let regex = try? NSRegularExpression(pattern: "/[0-9]+[M,K]bps/"),
+                  1 == regex.numberOfMatches(in: drate, range: NSRange(location: 0, length: drate.utf16.count)),
+                  1 == regex.numberOfMatches(in: urate, range: NSRange(location: 0, length: urate.utf16.count))
+            else {
+                throw GwnError.freeForm("Upload/Download rate must be expressed as Mbps or Kbps, i.e 64Kbps")
+            }
+            
             var cancellables: Set<AnyCancellable> = .init()
             let session = URLSession(configuration: URLSession.shared.configuration,
                                      delegate: TlsWarningsIgnoringUrlSessionDelegate(),
