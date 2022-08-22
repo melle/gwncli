@@ -100,7 +100,7 @@ extension Gwncli {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
             // GWN is very picky about the units, only Mbps and Kbps in the right case are allowed.
-            guard let regex = try? NSRegularExpression(pattern: "/[0-9]+[M,K]bps/"),
+            guard let regex = try? NSRegularExpression(pattern: "[0-9]*[M,K]bps"),
                   1 == regex.numberOfMatches(in: drate, range: NSRange(location: 0, length: drate.utf16.count)),
                   1 == regex.numberOfMatches(in: urate, range: NSRange(location: 0, length: urate.utf16.count))
             else {
