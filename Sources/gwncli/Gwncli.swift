@@ -17,7 +17,9 @@ struct Gwncli: ParsableCommand {
         var username: String
         @Option(help: "Password to be used at login, i.e. \(randomPassword())")
         var password: String
-        
+        @Option(help: "Path to an aliases file, i.e. ~/.gwnaliases.txt")
+        var aliases: String?
+
         /// Generates an 8 character pseudo random password. Just to have a different password in the command line help every time you call it 🤡
         static func randomPassword() -> String {
             return String((0..<8).map { _ in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
@@ -55,8 +57,10 @@ extension Gwncli {
             let context = GwnContext(session: session,
                                      url: gwnUrl,
                                      userName: options.username,
-                                     password: options.password)
-            GWN.acquireSession(context: context)
+                                     password: options.password,
+                                     aliases: options.aliases)
+            GWN.readAliases(context: context)
+                .flatMap { GWN.acquireSession(context: $0) }
                 .flatMap { GWN.getConfiguration(context: $0) }
                 .sink(receiveCompletion: { completion in
                     switch completion {
@@ -66,7 +70,7 @@ extension Gwncli {
                         ListRules.exit()
                     }
                 }, receiveValue: { configuration in
-                    print(configuration.bandwidthRulesFormatted)
+                    print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
                 })
                 .store(in: &cancellables)
             RunLoop.current.run()
@@ -114,8 +118,10 @@ extension Gwncli {
             let context = GwnContext(session: session,
                                      url: gwnUrl,
                                      userName: options.username,
-                                     password: options.password)
-            GWN.acquireSession(context: context)
+                                     password: options.password,
+                                     aliases: options.aliases)
+            GWN.readAliases(context: context)
+                .flatMap { GWN.acquireSession(context: $0) }
                 .flatMap { GWN.addOrUpdateRule(context: $0, mac: mac, ssidId: ssid, drate: drate, urate: urate) }
                 .sink(receiveCompletion: { completion in
                     switch completion {
@@ -125,7 +131,7 @@ extension Gwncli {
                         ListRules.exit()
                     }
                 }, receiveValue: { configuration in
-                    print(configuration.bandwidthRulesFormatted)
+                    print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
                 })
                 .store(in: &cancellables)
             RunLoop.current.run()
@@ -161,8 +167,10 @@ extension Gwncli {
             let context = GwnContext(session: session,
                                      url: gwnUrl,
                                      userName: options.username,
-                                     password: options.password)
-            GWN.acquireSession(context: context)
+                                     password: options.password,
+                                     aliases: options.aliases)
+            GWN.readAliases(context: context)
+                .flatMap { GWN.acquireSession(context: $0) }
                 .flatMap { GWN.deleteRule(context: $0, ruleName: ruleName) }
                 .sink(receiveCompletion: { completion in
                     switch completion {
@@ -172,7 +180,7 @@ extension Gwncli {
                         DeleteRule.exit()
                     }
                 }, receiveValue: { configuration in
-                    print(configuration.bandwidthRulesFormatted)
+                    print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
                 })
                 .store(in: &cancellables)
             RunLoop.current.run()

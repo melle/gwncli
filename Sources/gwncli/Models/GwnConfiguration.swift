@@ -60,12 +60,12 @@ extension GwnConfiguration {
     }
 
     /// Lists all bandwidth rules properly formatted for console output
-    public var bandwidthRulesFormatted: String {
+    public func bandwidthRulesFormatted(aliases: GwnContext.Aliases) -> String {
         bandwidthRules
             .sorted(by: { lhs, rhs in
                 (lhs.id, lhs.ssidId) < (rhs.id, rhs.ssidId)
             })
-            .map { $0.description(humanReadableSsid: ssidStringFor(id: $0.ssidId )) }
+            .map { $0.description(humanReadableSsid: ssidStringFor(id: $0.ssidId ), aliases: aliases) }
             .joined(separator: "\n")
     }
 }

@@ -290,7 +290,7 @@ extension GwncliTests {
         let configResponse: [GwnConfigurationResponse] = try decode(resource: #function, to: [GwnConfigurationResponse].self)
         
         // when
-        guard let sut = configResponse.first?.result.first?.bandwidthRulesFormatted else { XCTFail() ; return }
+        guard let sut = configResponse.first?.result.first?.bandwidthRulesFormatted(aliases: GwnContext.Aliases(aliasMap: [:])) else { XCTFail() ; return }
         
         // then - rules must appear properly formatted in the right order
         XCTAssertEqual(sut,
@@ -303,6 +303,21 @@ extension GwncliTests {
                        rule1\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 9C:FC:28:D1:F7:20\tSSID: ssid1 "Paul-Motz-34"
                        """
         )
+    }
+}
+
+// MARK: - Aliases
+
+extension GwncliTests {
+    func testAliasPadding() throws {
+        let sut = GwnContext.Aliases(aliasMap: [
+            "6C:C4:D5:50:95:F1": "AppleCast",
+            "9C:FC:28:D1:F7:20": "Another longish alias",
+        ])
+        
+        XCTAssertEqual(sut.aliasFor(id: "6C:C4:D5:50:95:F1"), "6C:C4:D5:50:95:F1 (AppleCast)            ")
+        XCTAssertEqual(sut.aliasFor(id: "9C:FC:28:D1:F7:20"), "9C:FC:28:D1:F7:20 (Another longish alias)")
+        XCTAssertEqual(sut.aliasFor(id: "AA:BB:CC:DD:EE:FF"), "AA:BB:CC:DD:EE:FF                        ")
     }
 }
 

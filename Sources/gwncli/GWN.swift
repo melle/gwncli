@@ -6,6 +6,28 @@ import FoundationExtensions
 
 struct GWN {
     
+    static func readAliases(context: GwnContext) -> Publishers.Promise<GwnContext, GwnError> {
+        guard let url = context.aliasesFile,
+              let aliases = try? String(contentsOf: url) else {
+            return Just(context)
+                .mapError(absurd)
+                .promise
+        }
+        let lines = aliases.split(separator: "\n")
+        let result = lines.compactMap({ line in
+            let comps = line.components(separatedBy: .whitespaces)
+            if let mac = comps.first, let alias = comps.last {
+                return (mac, alias)
+            }
+            return nil
+        }).reduce(into: Dictionary<String, String>()) { $0[$1.0] = $1.1 }
+        
+        context.aliases = GwnContext.Aliases(aliasMap: result)
+        return Just(context)
+            .mapError(absurd)
+            .promise
+    }
+
     static func acquireSession(context: GwnContext) -> Publishers.Promise<GwnContext, GwnError> {
         guard let request = GwnRequest.login(context: context).urlRequest else {
             return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)")).promise

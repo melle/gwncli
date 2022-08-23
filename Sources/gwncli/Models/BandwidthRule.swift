@@ -33,7 +33,8 @@ extension BandwidthRule: CustomStringConvertible {
         "\(name)\t\((enabled == "1" ? "[enabled] " : "[disabled]"))\tU: \(urate)\tD:\(drate)\t\(idType)\t\(id)\tSSID: \(ssidId)"
     }
     
-    func description(humanReadableSsid: String) -> String {
-        "\(name)\t\((enabled == "1" ? "[enabled] " : "[disabled]"))\tU: \(urate)\tD:\(drate)\t\(idType): \(id)\tSSID: \(ssidId) \"\(humanReadableSsid)\""
+    func description(humanReadableSsid: String, aliases: GwnContext.Aliases) -> String {
+        let idAndAlias = aliases.aliasFor(id: id)
+        return "\(name)\t\((enabled == "1" ? "[enabled] " : "[disabled]"))\tU: \(urate)\tD:\(drate)\t\(idType): \(idAndAlias)\tSSID: \(ssidId) \"\(humanReadableSsid)\""
     }
 }
