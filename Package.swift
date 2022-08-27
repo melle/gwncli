@@ -9,7 +9,7 @@ let package = Package(
             .macOS(.v12)
         ],
     dependencies: [
-        .package(url: "https://github.com/teufelaudio/FoundationExtensions", from: "0.1.16"),
+        .package(url: "https://github.com/teufelaudio/FoundationExtensions", branch: "linux-compat"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.0"),
     ],
     targets: [
