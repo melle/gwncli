@@ -1,7 +1,7 @@
 // Copyright © 2022 Thomas Mellenthin (privat). All rights reserved.
 
 import ArgumentParser
-import Combine
+import OpenCombineShim
 import Foundation
 
 
