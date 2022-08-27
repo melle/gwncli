@@ -1,6 +1,6 @@
 // Copyright © 2022 Thomas Mellenthin (privat). All rights reserved.
 
-import Combine
+import OpenCombineShim
 import Foundation
 import FoundationExtensions
 
