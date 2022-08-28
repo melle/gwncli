@@ -3,7 +3,9 @@
 import ArgumentParser
 import OpenCombineShim
 import Foundation
-
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 @main
 struct Gwncli: ParsableCommand {

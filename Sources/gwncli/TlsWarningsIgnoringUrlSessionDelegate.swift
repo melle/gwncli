@@ -1,4 +1,8 @@
+
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Grandstream APs use self signed certificates, we have to ignore the certificate warnings.
 /// This is bad, but better than plain http, also there is no real solution for secure local networking).

@@ -1,6 +1,9 @@
 // Copyright © 2022 Thomas Mellenthin (privat). All rights reserved.
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 struct GwnRequest: Encodable {
     public let id: Int
