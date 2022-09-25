@@ -10,7 +10,6 @@ let package = Package(
         ],
     dependencies: [
         .package(url: "https://github.com/OpenCombine/OpenCombine.git", from: "0.13.0"),
-        .package(url: "https://github.com/teufelaudio/FoundationExtensions", branch: "linux-compat"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.0"),
     ],
     targets: [
@@ -20,7 +19,6 @@ let package = Package(
                 "OpenCombine",
                 .product(name: "OpenCombineShim", package: "OpenCombine"),
                 .product(name: "OpenCombineFoundation", package: "OpenCombine"),
-                "FoundationExtensions",
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
             ]),
         .testTarget(
