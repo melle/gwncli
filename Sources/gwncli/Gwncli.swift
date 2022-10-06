@@ -52,9 +52,12 @@ extension Gwncli {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
             var cancellables: Set<AnyCancellable> = .init()
-            let session = URLSession(configuration: URLSession.shared.configuration,
-                                     delegate: TlsWarningsIgnoringUrlSessionDelegate(),
-                                     delegateQueue: nil)
+#if !os(Linux)
+            let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
+#else
+            let session = URLSession(configuration: URLSession.shared.configuration)
+#endif
+            
             let context = GwnContext(session: session,
                                      url: gwnUrl,
                                      userName: options.username,
@@ -113,9 +116,11 @@ extension Gwncli {
             }
             
             var cancellables: Set<AnyCancellable> = .init()
-            let session = URLSession(configuration: URLSession.shared.configuration,
-                                     delegate: TlsWarningsIgnoringUrlSessionDelegate(),
-                                     delegateQueue: nil)
+#if !os(Linux)
+            let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
+#else
+            let session = URLSession(configuration: URLSession.shared.configuration)
+#endif
             let context = GwnContext(session: session,
                                      url: gwnUrl,
                                      userName: options.username,
@@ -162,9 +167,11 @@ extension Gwncli {
             }
             var cancellables: Set<AnyCancellable> = .init()
             
-            let session = URLSession(configuration: URLSession.shared.configuration,
-                                     delegate: TlsWarningsIgnoringUrlSessionDelegate(),
-                                     delegateQueue: nil)
+#if !os(Linux)
+            let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
+#else
+            let session = URLSession(configuration: URLSession.shared.configuration)
+#endif
             let context = GwnContext(session: session,
                                      url: gwnUrl,
                                      userName: options.username,
