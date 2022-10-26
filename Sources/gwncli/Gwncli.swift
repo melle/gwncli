@@ -20,8 +20,8 @@ struct Gwncli: ParsableCommand {
         var password: String
         @Option(help: "Path to an aliases file, i.e. ~/.gwnaliases.txt")
         var aliases: String?
-        @Flag(name: .shortAndLong, help: "Debug output")
-        var debug: Bool = false
+        @Option(help: "Log level (1..5)")
+        var logLevel: UInt = GwnContext.LogLevel.info.rawValue
 
         /// Generates an 8 character pseudo random password. Just to have a different password in the command line help every time you call it 🤡
         static func randomPassword() -> String {
@@ -65,7 +65,7 @@ extension Gwncli {
                                      userName: options.username,
                                      password: options.password,
                                      aliases: options.aliases,
-                                     debug: options.debug)
+                                     logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
             GWN.readAliases(context: context)
                 .flatMap { GWN.acquireSession(context: $0) }
                 .flatMap { GWN.getConfiguration(context: $0) }
@@ -129,7 +129,7 @@ extension Gwncli {
                                      userName: options.username,
                                      password: options.password,
                                      aliases: options.aliases,
-                                     debug: options.debug)
+                                     logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
             GWN.readAliases(context: context)
                 .flatMap { GWN.acquireSession(context: $0) }
                 .flatMap { GWN.addOrUpdateRule(context: $0, mac: mac, ssidId: ssid, drate: drate, urate: urate) }
@@ -187,7 +187,7 @@ extension Gwncli {
                                      userName: options.username,
                                      password: options.password,
                                      aliases: options.aliases,
-                                     debug: options.debug)
+                                     logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
             GWN.readAliases(context: context)
                 .flatMap { GWN.acquireSession(context: $0) }
                 .flatMap { GWN.deleteRule(context: $0, ruleName: ruleName, macAddress: mac) }

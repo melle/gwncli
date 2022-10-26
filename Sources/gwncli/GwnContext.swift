@@ -6,6 +6,22 @@ import FoundationNetworking
 #endif
 
 final class GwnContext {
+    enum LogLevel: UInt, RawRepresentable, CaseIterable, Decodable {
+        case fatal = 1
+        case error = 2
+        case warning = 3
+        case info = 4
+        case debug = 5
+        
+        var isInfo: Bool {
+            self.rawValue >= LogLevel.info.rawValue
+        }
+        
+        var isDebug: Bool {
+            self.rawValue >= LogLevel.debug.rawValue
+        }
+    }
+    
     public let session: URLSession
     public let url: URL
     public let userName: String
@@ -14,8 +30,8 @@ final class GwnContext {
     public var requestId: Int
     public var aliasesFile: URL?
     public var aliases: Aliases = .init(aliasMap: [:])
-    public let debug: Bool
-    
+    public let logLevel: LogLevel
+
     init(session: URLSession,
          url: URL,
          userName: String,
@@ -23,7 +39,7 @@ final class GwnContext {
          sessionToken: String = "00000000000000000000000000000000",
          requestId: Int = 1,
          aliases: String? = nil,
-         debug: Bool? = false) {
+         logLevel: LogLevel? = .warning) {
         self.session = session
         self.url = url
         self.userName = userName
@@ -32,7 +48,7 @@ final class GwnContext {
         self.requestId = requestId
         self.aliasesFile = aliases.map { URL(fileURLWithPath: $0,
                                              relativeTo: URL(fileURLWithPath: FileManager().currentDirectoryPath)) }
-        self.debug = debug ?? false
+        self.logLevel = logLevel ?? .warning
     }
     
     var nextRequestId: Int {
@@ -40,12 +56,18 @@ final class GwnContext {
         return requestId
     }
 
-    func log(_ message: () -> String) {
-        guard debug else { return }
+    func info(_ message: () -> String) {
+        guard logLevel.isInfo else { return }
         // there is no OSLog on Linux ;-(
         print(message())
     }
-    
+
+    func debug(_ message: () -> String) {
+        guard logLevel.isDebug else { return }
+        // there is no OSLog on Linux ;-(
+        print(message())
+    }
+
     struct Aliases {
         public let aliasMap: [String: String]
         
