@@ -6,12 +6,18 @@ import FoundationNetworking
 #endif
 
 final class GwnContext {
+    
+    // Poo mans OSLog (on Linux...)
     enum LogLevel: UInt, RawRepresentable, CaseIterable, Decodable {
         case fatal = 1
         case error = 2
         case warning = 3
         case info = 4
         case debug = 5
+        
+        var isError: Bool {
+            self.rawValue >= LogLevel.error.rawValue
+        }
         
         var isInfo: Bool {
             self.rawValue >= LogLevel.info.rawValue
@@ -59,6 +65,11 @@ final class GwnContext {
     func info(_ message: () -> String) {
         guard logLevel.isInfo else { return }
         // there is no OSLog on Linux ;-(
+        print(message())
+    }
+
+    func error(_ message: () -> String) {
+        guard logLevel.isError else { return }
         print(message())
     }
 

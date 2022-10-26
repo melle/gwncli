@@ -46,10 +46,11 @@ struct GWN {
                     context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
                 })
                 .decode(type: LoginResponse.self, decoder: JSONDecoder())
-                .mapError(GwnError.networkError)
+                .mapError { GwnError.networkError($0) }
                 .map(\.session)
                 .sink(receiveCompletion: { completion in
                     if case let .failure(error) = completion {
+                        context.error {"[gwncli] \(#function) - \(error.underlyingError.debugDescription)"}
                         promise(.failure(error))
                     }
                 }, receiveValue: { (token: String) in
@@ -59,7 +60,6 @@ struct GWN {
                 })
                 .store(in: &cancellables)
         }
-            
     }
     
     static func getConfiguration(context: GwnContext) -> Future<GwnConfiguration, GwnError> {
@@ -78,7 +78,7 @@ struct GWN {
                     context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
                 })
                 .decode(type: GwnConfigurationResponse.self, decoder: JSONDecoder())
-                .mapError(GwnError.networkError)
+                .mapError { GwnError.networkError($0) }
                 .map(\.result)
                 .compactMap{ $0.first } // grab the first array element
                 .sink { completion in
@@ -169,7 +169,7 @@ extension GWN {
                 context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError(GwnError.networkError)
+            .mapError { GwnError.networkError($0) }
             .flatMap { evaluateResponse(response: $0, message: "Delete rule \(ruleName) failed: \($0)") }
             .eraseToAnyPublisher()
     }
@@ -199,7 +199,7 @@ extension GWN {
                 context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError(GwnError.networkError)
+            .mapError { GwnError.networkError($0) }
             .flatMap { evaluateResponse(response: $0, message: "Addd rule \(ruleName) failed: \($0)") }
             .eraseToAnyPublisher()
     }
@@ -230,7 +230,7 @@ extension GWN {
                 context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError(GwnError.networkError)
+            .mapError { GwnError.networkError($0) }
             .flatMap { evaluateResponse(response: $0, message: "Set rule \(ruleName) failed: \($0)") }
             .eraseToAnyPublisher()
     }
@@ -249,7 +249,7 @@ extension GWN {
                 context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError(GwnError.networkError)
+            .mapError { GwnError.networkError($0) }
             .flatMap { evaluateResponse(response: $0, message: "Apply failed: \($0)") }
             .eraseToAnyPublisher()
     }
@@ -268,7 +268,7 @@ extension GWN {
                 context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError(GwnError.networkError)
+            .mapError { GwnError.networkError($0) }
             .flatMap { evaluateResponse(response: $0, message: "Confirm failed: \($0)") }
             .eraseToAnyPublisher()
     }
