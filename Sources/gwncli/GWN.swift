@@ -81,22 +81,28 @@ struct GWN {
         }
     }
     
-    static func deleteRule(context: GwnContext, ruleName: String) -> AnyPublisher<GwnConfiguration, GwnError> {
+    static func deleteRule(context: GwnContext, ruleName: String?, macAddress: String?) -> AnyPublisher<GwnConfiguration, GwnError> {
         getConfiguration(context: context)
-            .flatMap { config in
+            .flatMap { (config: GwnConfiguration) -> AnyPublisher<BandwidthRule, GwnError> in
                 // only delete rules that exist :)
-                guard config.bandwidthRules.contains(where: { $0.name == ruleName }) else {
-                    return Fail<GwnConfiguration, GwnError>(error: GwnError.ruleNotFound(ruleName))
+                let matchingRules: [BandwidthRule] =  config.bandwidthRules.filter({
+                    $0.name == ruleName || $0.id == macAddress
+                })
+                if matchingRules.count == 0 {
+                    return Fail<BandwidthRule, GwnError>(error: GwnError.ruleNotFound(ruleName ?? macAddress ?? ""))
                         .eraseToAnyPublisher()
                 }
                 
-                // delete and confirm
-                return deleteRuleWithoutCheck(context: context, ruleName: ruleName)
-                    .flatMap { applyPendingChanges(context: context) }
-                    .flatMap { confirmPendingChanges(context: context) }
-                    .flatMap { getConfiguration(context: context) }
+                return matchingRules
+                    .publisher
+                    .setFailureType(to: GwnError.self)
                     .eraseToAnyPublisher()
             }
+            .flatMap { (rule: BandwidthRule) -> AnyPublisher<Void, GwnError> in deleteRuleWithoutCheck(context: context, ruleName: rule.name) }
+            .last() // [Void] -> Void
+            .flatMap { applyPendingChanges(context: context) }
+            .flatMap { confirmPendingChanges(context: context) }
+            .flatMap { getConfiguration(context: context) }
             .eraseToAnyPublisher()
     }
     
