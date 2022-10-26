@@ -161,14 +161,13 @@ extension Gwncli {
         var ruleName: String?
         
         @Option(help: "If given, all rules for that mac address will be deleted")
-        var macAddress: String?
-        
+        var mac: String?
 
         func run() throws {
             guard let gwnUrl = URL(string: options.url) else {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
-            guard nil != ruleName || nil != macAddress else {
+            guard nil != ruleName || nil != mac else {
                 throw GwnError.freeForm("You must provide either a rule name or a mac address!")
             }
             
@@ -186,7 +185,7 @@ extension Gwncli {
                                      aliases: options.aliases)
             GWN.readAliases(context: context)
                 .flatMap { GWN.acquireSession(context: $0) }
-                .flatMap { GWN.deleteRule(context: $0, ruleName: ruleName, macAddress: macAddress) }
+                .flatMap { GWN.deleteRule(context: $0, ruleName: ruleName, macAddress: mac) }
                 .sink(receiveCompletion: { completion in
                     switch completion {
                     case let .failure(gwnError):
