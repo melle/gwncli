@@ -295,12 +295,12 @@ extension GwncliTests {
         // then - rules must appear properly formatted in the right order
         XCTAssertEqual(sut,
                        """
-                       rule4\t[enabled] \tU: 123Kbps\tD:456Kbps\tmac: 00:11:22:33:44:55\tSSID: ssid0 "Paul-Motz-19"
-                       rule5\t[enabled] \tU: 123Kbps\tD:456Kbps\tmac: 00:11:22:33:44:55\tSSID: ssid1 "Paul-Motz-34"
-                       rule2\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 6C:C4:D5:50:95:F1\tSSID: ssid0 "Paul-Motz-19"
-                       rule3\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 6C:C4:D5:50:95:F1\tSSID: ssid1 "Paul-Motz-34"
-                       rule0\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 9C:FC:28:D1:F7:20\tSSID: ssid0 "Paul-Motz-19"
-                       rule1\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 9C:FC:28:D1:F7:20\tSSID: ssid1 "Paul-Motz-34"
+                       rule4\t[enabled] \tU: 123Kbps\tD:456Kbps\tmac: 00:11:22:33:44:55   \tSSID: ssid0 "Paul-Motz-19"
+                       rule5\t[enabled] \tU: 123Kbps\tD:456Kbps\tmac: 00:11:22:33:44:55   \tSSID: ssid1 "Paul-Motz-34"
+                       rule2\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 6C:C4:D5:50:95:F1   \tSSID: ssid0 "Paul-Motz-19"
+                       rule3\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 6C:C4:D5:50:95:F1   \tSSID: ssid1 "Paul-Motz-34"
+                       rule0\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 9C:FC:28:D1:F7:20   \tSSID: ssid0 "Paul-Motz-19"
+                       rule1\t[enabled] \tU: 96Kbps\tD:96Kbps\tmac: 9C:FC:28:D1:F7:20   \tSSID: ssid1 "Paul-Motz-34"
                        """
         )
     }
