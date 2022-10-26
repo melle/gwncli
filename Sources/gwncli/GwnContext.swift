@@ -14,6 +14,7 @@ final class GwnContext {
     public var requestId: Int
     public var aliasesFile: URL?
     public var aliases: Aliases = .init(aliasMap: [:])
+    public let debug: Bool
     
     init(session: URLSession,
          url: URL,
@@ -21,7 +22,8 @@ final class GwnContext {
          password: String,
          sessionToken: String = "00000000000000000000000000000000",
          requestId: Int = 1,
-         aliases: String? = nil) {
+         aliases: String? = nil,
+         debug: Bool? = false) {
         self.session = session
         self.url = url
         self.userName = userName
@@ -30,6 +32,7 @@ final class GwnContext {
         self.requestId = requestId
         self.aliasesFile = aliases.map { URL(fileURLWithPath: $0,
                                              relativeTo: URL(fileURLWithPath: FileManager().currentDirectoryPath)) }
+        self.debug = debug ?? false
     }
     
     var nextRequestId: Int {
@@ -37,6 +40,12 @@ final class GwnContext {
         return requestId
     }
 
+    func log(_ message: () -> String) {
+        guard debug else { return }
+        // there is no OSLog on Linux ;-(
+        print(message())
+    }
+    
     struct Aliases {
         public let aliasMap: [String: String]
         
