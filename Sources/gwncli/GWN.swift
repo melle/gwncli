@@ -18,7 +18,7 @@ struct GWN {
         let result = lines.compactMap({ line in
             let comps = line.components(separatedBy: .whitespaces)
             if let mac = comps.first, let alias = comps.last {
-                return (mac, alias)
+                return (mac.lowercased(), alias)
             }
             return nil
         }).reduce(into: Dictionary<String, String>()) { $0[$1.0] = $1.1 }

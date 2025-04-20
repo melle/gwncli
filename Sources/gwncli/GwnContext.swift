@@ -84,8 +84,8 @@ final class GwnContext {
         
         public func aliasFor(id: String) -> String {
             let longestAliasCount = aliasMap.values.map { $0.count }.max() ?? 0
-            let alias: String = aliasMap[id].map { " (\($0))" } ?? ""
-            let fullString = id + alias
+            let alias: String = aliasMap[id.lowercased()].map { " (\($0))" } ?? ""
+            let fullString = id.lowercased() + alias
             return fullString.padding(toLength: id.count + longestAliasCount + 3, withPad: " ", startingAt: 0)
         }
     }
