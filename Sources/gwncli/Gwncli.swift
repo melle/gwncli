@@ -7,7 +7,7 @@ import FoundationNetworking
 #endif
 
 @main
-struct Gwncli: ParsableCommand {
+struct Gwncli: AsyncParsableCommand {
     
     /// Common options for all commands
     struct CommonOptions: ParsableArguments {
