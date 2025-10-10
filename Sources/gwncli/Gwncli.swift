@@ -66,10 +66,12 @@ extension Gwncli {
                                      logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
             
             do {
-                var updatedContext = try await GWN.readAliases(context: context)
-                updatedContext = try await GWN.acquireSession(context: updatedContext)
-                let configuration = try await GWN.getConfiguration(context: updatedContext)
-                print(configuration.bandwidthRulesFormatted(aliases: updatedContext.aliases))
+                let configuration = try await context
+                    .readingAliases()
+                    .acquiringSession()
+                    .fetchingConfiguration()
+                
+                print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
             } catch let error as GwnError {
                 throw error
             } catch {
@@ -125,10 +127,12 @@ extension Gwncli {
                                      logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
             
             do {
-                var updatedContext = try await GWN.readAliases(context: context)
-                updatedContext = try await GWN.acquireSession(context: updatedContext)
-                let configuration = try await GWN.addOrUpdateRule(context: updatedContext, mac: mac, ssidId: ssid, drate: drate, urate: urate)
-                print(configuration.bandwidthRulesFormatted(aliases: updatedContext.aliases))
+                let configuration = try await context
+                    .readingAliases()
+                    .acquiringSession()
+                    .addingOrUpdatingRule(mac: mac, ssidId: ssid, drate: drate, urate: urate)
+                
+                print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
             } catch let error as GwnError {
                 throw error
             } catch {
@@ -176,10 +180,12 @@ extension Gwncli {
                                      logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
             
             do {
-                var updatedContext = try await GWN.readAliases(context: context)
-                updatedContext = try await GWN.acquireSession(context: updatedContext)
-                let configuration = try await GWN.deleteRule(context: updatedContext, ruleName: ruleName, macAddress: mac)
-                print(configuration.bandwidthRulesFormatted(aliases: updatedContext.aliases))
+                let configuration = try await context
+                    .readingAliases()
+                    .acquiringSession()
+                    .deletingRule(ruleName: ruleName, macAddress: mac)
+                
+                print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
             } catch let error as GwnError {
                 throw error
             } catch {

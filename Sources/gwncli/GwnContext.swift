@@ -112,3 +112,31 @@ struct GwnContext: Sendable {
         }
     }
 }
+
+// MARK: - Fluent API for elegant async chaining
+extension GwnContext {
+    /// Reads aliases from the configured aliases file
+    func readingAliases() async throws -> GwnContext {
+        try await GWN.readAliases(context: self)
+    }
+    
+    /// Acquires a session token by logging in
+    func acquiringSession() async throws -> GwnContext {
+        try await GWN.acquireSession(context: self)
+    }
+    
+    /// Fetches the current configuration from the device
+    func fetchingConfiguration() async throws -> GwnConfiguration {
+        try await GWN.getConfiguration(context: self)
+    }
+    
+    /// Deletes a bandwidth rule by name or MAC address
+    func deletingRule(ruleName: String?, macAddress: String?) async throws -> GwnConfiguration {
+        try await GWN.deleteRule(context: self, ruleName: ruleName, macAddress: macAddress)
+    }
+    
+    /// Adds or updates a bandwidth rule for the given MAC address
+    func addingOrUpdatingRule(mac: String, ssidId: String, drate: String, urate: String) async throws -> GwnConfiguration {
+        try await GWN.addOrUpdateRule(context: self, mac: mac, ssidId: ssidId, drate: drate, urate: urate)
+    }
+}
