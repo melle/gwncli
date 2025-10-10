@@ -4,13 +4,12 @@ A Swift command-line tool to programmatically manage bandwidth rules on Grandstr
 
 ## Features
 
-- ✅ **List bandwidth rules** - View all configured rules with their settings
-- ✅ **Add/Update rules** - Create new rules or modify existing ones
-- ✅ **Delete rules** - Remove rules by name or MAC address
-- ✅ **Aliases support** - Use friendly names instead of MAC addresses
-- ✅ **Configurable logging** - 5 log levels for debugging
-- ✅ **Cross-platform** - Works on macOS and Linux
-- ✅ **Modern Swift** - Built with Swift 6.2 and structured concurrency
+- **List bandwidth rules** - View all configured rules with their settings
+- **Add/Update rules** - Create new rules or modify existing ones
+- **Delete rules** - Remove rules by name or MAC address
+- **Aliases support** - Use friendly names instead of MAC addresses
+- **Cross-platform** - Works on macOS and Linux
+- **Modern Swift** - Built with Swift 6.2 and structured concurrency
 
 ## Use Case
 
