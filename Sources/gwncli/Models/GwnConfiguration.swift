@@ -3,13 +3,13 @@
 import Foundation
 
 // JSON response when querying the configuration
-struct GwnConfigurationResponse: Decodable {
+struct GwnConfigurationResponse: Decodable, Sendable {
     public let jsonrpc: String
     public let id: Int
     @LossyCodableList public var result: [GwnConfiguration]
 }
 
-struct GwnConfiguration: Decodable {
+struct GwnConfiguration: Decodable, Sendable {
     public let values: Dictionary<String, GwnConfigEntry>
     
     enum CodingKeys: String, CodingKey {

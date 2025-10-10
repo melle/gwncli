@@ -5,7 +5,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-struct GwnRequest: Encodable {
+struct GwnRequest: Encodable, Sendable {
     public let id: Int
     public let jsonrpc: String = "2.0"
     public let method: String
@@ -154,14 +154,14 @@ struct GwnRequest: Encodable {
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         request.httpBody = try? encoder.encode(self)
         
         return request
     }
 }
 
-enum RequestParameters: Encodable {
+enum RequestParameters: Encodable, Sendable {
     case value(String)
     case login(Login)
     case getConfig(Config)
@@ -193,35 +193,35 @@ enum RequestParameters: Encodable {
         }
     }
     
-    struct Login: Encodable {
+    struct Login: Encodable, Sendable {
         public let username: String
         public let password: String
     }
     
-    struct Config: Encodable {
+    struct Config: Encodable, Sendable {
         public let config: String = "grandstream"
     }
     
-    struct DeleteRule: Encodable {
+    struct DeleteRule: Encodable, Sendable {
         public let config: String = "grandstream"
         public let section: String
     }
     
-    struct AddRule: Encodable {
+    struct AddRule: Encodable, Sendable {
         public let config: String = "grandstream"
         public let values: RuleModification
         public let type: String = "bwctrl-rule"
         public let name: String
     }
     
-    struct SetRule: Encodable {
+    struct SetRule: Encodable, Sendable {
         public let config: String = "grandstream"
         /// rule name
         public let section: String
         public let values: RuleModification
     }
     
-    struct RuleModification: Encodable {
+    struct RuleModification: Encodable, Sendable {
         let id: String
         let enabled: Int
         let idType: String
@@ -239,13 +239,13 @@ enum RequestParameters: Encodable {
         }
     }
     
-    struct Apply: Encodable {
+    struct Apply: Encodable, Sendable {
         public let timeout: Int = 10
         public let rollback: Bool = true
         
     }
     
-    struct Confirm: Encodable {
+    struct Confirm: Encodable, Sendable {
     }
 }
 

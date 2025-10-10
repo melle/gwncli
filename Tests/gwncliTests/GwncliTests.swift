@@ -41,7 +41,7 @@ extension GwncliTests {
         }
     }
     
-    func testDecodebandwidthRule() throws {
+    func testDecodeBandwidthRule() throws {
         // when
         let sut: Dictionary<String, BandwidthRule> = try decode(resource: #function, to: Dictionary<String, BandwidthRule>.self)
         
@@ -107,7 +107,7 @@ extension GwncliTests {
         
         // when
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
         
         // then
@@ -121,8 +121,8 @@ extension GwncliTests {
                             "session",
                             "login",
                             {
-                              "username" : "user",
-                              "password" : "password"
+                              "password" : "password",
+                              "username" : "user"
                             }
                           ]
                         }
@@ -140,7 +140,7 @@ extension GwncliTests {
         
         // when
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
         
         // then
@@ -172,7 +172,7 @@ extension GwncliTests {
         
         // when
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
         
         // then
@@ -186,8 +186,8 @@ extension GwncliTests {
                            "uci",
                            "delete",
                            {
-                             "section" : "rule34",
-                             "config" : "grandstream"
+                             "config" : "grandstream",
+                             "section" : "rule34"
                            }
                          ]
                        }
@@ -205,7 +205,7 @@ extension GwncliTests {
         
         // when
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
         
         // then
@@ -219,8 +219,8 @@ extension GwncliTests {
                            "uci",
                            "apply",
                            {
-                             "timeout" : 10,
-                             "rollback" : true
+                             "rollback" : true,
+                             "timeout" : 10
                            }
                          ]
                        }
@@ -238,7 +238,7 @@ extension GwncliTests {
         
         // when
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let result = String(data: try encoder.encode(sut), encoding: .utf8)
         
         // then
@@ -330,8 +330,23 @@ extension GwncliTests {
     }
     
     func data(resource: String) throws -> Data {
-        // no idea why but `Bundle.module.url(forResource: functionName, withExtension: "json")` fails here 🤷‍♂️
-        let url = Bundle.module.bundleURL.appendingPathComponent("Contents/Resources/Resources/\(resource).json")
-        return try Data(contentsOf: url)
+        // Bundle.module.url(forResource:withExtension:) doesn't handle filenames with parentheses well,
+        // and the bundle structure differs between Xcode and command line swift test.
+        // Try both possible locations:
+        
+        // Path for Xcode
+        let xcodeURL = Bundle.module.bundleURL.appendingPathComponent("Contents/Resources/Resources/\(resource).json")
+        if FileManager.default.fileExists(atPath: xcodeURL.path) {
+            return try Data(contentsOf: xcodeURL)
+        }
+        
+        // Path for command line swift test
+        let cliURL = Bundle.module.bundleURL.appendingPathComponent("Resources/\(resource).json")
+        if FileManager.default.fileExists(atPath: cliURL.path) {
+            return try Data(contentsOf: cliURL)
+        }
+        
+        throw NSError(domain: "TestError", code: 1, 
+                     userInfo: [NSLocalizedDescriptionKey: "Resource \(resource).json not found at \(xcodeURL.path) or \(cliURL.path)"])
     }
 }

@@ -2,7 +2,7 @@
 
 import Foundation
 
-struct BandwidthRule: Decodable {
+struct BandwidthRule: Decodable, Sendable {
     let anonymous: Bool
     let ruletype: String
     let name: String

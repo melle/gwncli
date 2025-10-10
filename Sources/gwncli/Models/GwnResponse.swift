@@ -2,7 +2,7 @@
 
 import Foundation
 
-struct GwnResponse: Decodable {
+struct GwnResponse: Decodable, Sendable {
     public let jsonrpc: String
     public let id: Int
     public let result: [ResultElement]
@@ -15,7 +15,7 @@ struct GwnResponse: Decodable {
     }
 }
 
-enum ResultElement: Decodable {
+enum ResultElement: Decodable, Sendable {
     case integer(Int)
     case resultClass(ResultClass)
     
@@ -33,5 +33,5 @@ enum ResultElement: Decodable {
     }
 }
 
-struct ResultClass: Decodable {
+struct ResultClass: Decodable, Sendable {
 }
