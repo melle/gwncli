@@ -1,18 +1,14 @@
-// Copyright © 2022 Thomas Mellenthin (privat). All rights reserved.
+// Copyright © 2022 Thomas Mellenthin (privat). All rights reserved.
 
-import OpenCombineShim
 import Foundation
 
 struct GWN {
-    private static var cancellables: Set<AnyCancellable> = .init()
     
-    static func readAliases(context: GwnContext) -> Future<GwnContext, GwnError> {
+    static func readAliases(context: GwnContext) async throws -> GwnContext {
         context.info("[gwncli] \(#function)")
         guard let url = context.aliasesFile,
               let aliases = try? String(contentsOf: url) else {
-            return Future { promise in
-                promise(.success(context))
-            }
+            return context
         }
         let lines = aliases.split(separator: "\n")
         let result = lines.compactMap({ line in
@@ -26,153 +22,110 @@ struct GWN {
         let newAliases = GwnContext.Aliases(aliasMap: result)
         let updatedContext = context.withAliases(newAliases)
         updatedContext.info("[gwncli] \(#function) - found \(newAliases.aliasMap.count) aliases")
-        return Future { promise in
-            promise(.success(updatedContext))
-        }
+        return updatedContext
     }
 
-    static func acquireSession(context: GwnContext) -> Future<GwnContext, GwnError> {
+    static func acquireSession(context: GwnContext) async throws -> GwnContext {
         context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.login(context: context).urlRequest else {
-            return Future { promise in
-                promise(.failure(GwnError.freeForm("Failed to create login request")))
-            }
+            throw GwnError.freeForm("Failed to create login request")
         }
         
-        return Future { promise in
-            context.session
-                .dataTaskPublisher(for: request)
-                .map(\.data)
-                .handleEvents(receiveOutput: { data in
-                    context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
-                })
-                .decode(type: LoginResponse.self, decoder: JSONDecoder())
-                .mapError { GwnError.networkError($0) }
-                .map(\.session)
-                .sink(receiveCompletion: { completion in
-                    if case let .failure(error) = completion {
-                        context.error("[gwncli] \(#function) - \(error.underlyingError.debugDescription)")
-                        promise(.failure(error))
-                    }
-                }, receiveValue: { (token: String) in
-                    let updatedContext = context.withSessionToken(token)
-                    updatedContext.info("[gwncli] \(#function) - got token: \(token)")
-                    promise(.success(updatedContext))
-                })
-                .store(in: &cancellables)
-        }
+        let (data, _) = try await context.session.data(for: request)
+        context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
+        
+        let response = try JSONDecoder().decode(LoginResponse.self, from: data)
+        let token = response.session
+        
+        let updatedContext = context.withSessionToken(token)
+        updatedContext.info("[gwncli] \(#function) - got token: \(token)")
+        return updatedContext
     }
     
-    static func getConfiguration(context: GwnContext) -> Future<GwnConfiguration, GwnError> {
+    static func getConfiguration(context: GwnContext) async throws -> GwnConfiguration {
         context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.getConfig(context: context).urlRequest else {
-            return Future { promise in
-                promise(.failure(GwnError.freeForm("Failed to create getConfig request")))
-            }
+            throw GwnError.freeForm("Failed to create getConfig request")
         }
         
-        return Future { promise in
-            context.session
-                .dataTaskPublisher(for: request)
-                .map(\.data)
-                .handleEvents(receiveOutput: { data in
-                    context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
-                })
-                .decode(type: GwnConfigurationResponse.self, decoder: JSONDecoder())
-                .mapError { GwnError.networkError($0) }
-                .map(\.result)
-                .compactMap{ $0.first } // grab the first array element
-                .sink { completion in
-                    if case let .failure(error) = completion {
-                        promise(.failure(error))
-                    }
-                } receiveValue: { gwnConfiguration in
-                    promise(.success(gwnConfiguration))
-                }
-                .store(in: &cancellables)
+        let (data, _) = try await context.session.data(for: request)
+        context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
+        
+        let response = try JSONDecoder().decode(GwnConfigurationResponse.self, from: data)
+        guard let configuration = response.result.first else {
+            throw GwnError.freeForm("No configuration found in response")
         }
+        return configuration
     }
     
-    static func deleteRule(context: GwnContext, ruleName: String?, macAddress: String?) -> AnyPublisher<GwnConfiguration, GwnError> {
+    static func deleteRule(context: GwnContext, ruleName: String?, macAddress: String?) async throws -> GwnConfiguration {
         context.info("[gwncli] \(#function) \(ruleName.map { "ruleName: " + $0 + " " } ?? "") \(macAddress.map { "macAddress: " + $0 + " " } ?? "")")
-        return getConfiguration(context: context)
-            .flatMap { (config: GwnConfiguration) -> AnyPublisher<BandwidthRule, GwnError> in
-                // only delete rules that exist :)
-                let matchingRules: [BandwidthRule] =  config.bandwidthRules.filter({
-                    $0.name == ruleName || $0.id == macAddress
-                })
-                if matchingRules.count == 0 {
-                    return Fail<BandwidthRule, GwnError>(error: GwnError.ruleNotFound(ruleName ?? macAddress ?? ""))
-                        .eraseToAnyPublisher()
-                }
-                
-                return matchingRules
-                    .publisher
-                    .setFailureType(to: GwnError.self)
-                    .eraseToAnyPublisher()
-            }
-            .flatMap { (rule: BandwidthRule) -> AnyPublisher<Void, GwnError> in deleteRuleWithoutCheck(context: context, ruleName: rule.name) }
-            .last() // [Void] -> Void
-            .flatMap { applyPendingChanges(context: context) }
-            .flatMap { confirmPendingChanges(context: context) }
-            .flatMap { getConfiguration(context: context) }
-            .eraseToAnyPublisher()
+        
+        let config = try await getConfiguration(context: context)
+        
+        // only delete rules that exist
+        let matchingRules = config.bandwidthRules.filter {
+            $0.name == ruleName || $0.id == macAddress
+        }
+        
+        guard !matchingRules.isEmpty else {
+            throw GwnError.ruleNotFound(ruleName ?? macAddress ?? "")
+        }
+        
+        // Delete each matching rule
+        for rule in matchingRules {
+            try await deleteRuleWithoutCheck(context: context, ruleName: rule.name)
+        }
+        
+        try await applyPendingChanges(context: context)
+        try await confirmPendingChanges(context: context)
+        return try await getConfiguration(context: context)
     }
     
-    static func addOrUpdateRule(context: GwnContext, mac: String, ssidId: String, drate: String, urate: String) -> AnyPublisher<GwnConfiguration, GwnError> {
+    static func addOrUpdateRule(context: GwnContext, mac: String, ssidId: String, drate: String, urate: String) async throws -> GwnConfiguration {
+        let config = try await getConfiguration(context: context)
         
-        return getConfiguration(context: context)
-            .flatMap { config in
-                // check if rule for SSID-ID and MAC exist? -> Add, if nothing is found
-                guard let existingRule = config.bandwidthRules.first(where: {
-                    $0.id.localizedLowercase == mac.localizedLowercase &&
-                    $0.ssidId == ssidId
-                }) else {
-                    return addRule(context: context,
-                                   ruleName: config.nextBandwidthRuleName,
-                                   mac: mac,
-                                   ssid: ssidId,
-                                   drate: drate,
-                                   urate: urate)
-                    .flatMap { applyPendingChanges(context: context) }
-                    .flatMap { confirmPendingChanges(context: context) }
-                    .flatMap { getConfiguration(context: context) }
-                }
-                
-                // rule exists? -> update
-                return updateRule(context: context,
-                                  ruleName: existingRule.name,
-                                  mac: mac,
-                                  ssid: ssidId,
-                                  drate: drate,
-                                  urate: urate)
-                .flatMap { applyPendingChanges(context: context) }
-                .flatMap { confirmPendingChanges(context: context) }
-                .flatMap { getConfiguration(context: context) }
-            }
-            .eraseToAnyPublisher()
+        // check if rule for SSID-ID and MAC exist? -> Add, if nothing is found
+        if let existingRule = config.bandwidthRules.first(where: {
+            $0.id.localizedLowercase == mac.localizedLowercase &&
+            $0.ssidId == ssidId
+        }) {
+            // rule exists -> update
+            try await updateRule(context: context,
+                              ruleName: existingRule.name,
+                              mac: mac,
+                              ssid: ssidId,
+                              drate: drate,
+                              urate: urate)
+        } else {
+            // Add new rule
+            try await addRule(context: context,
+                           ruleName: config.nextBandwidthRuleName,
+                           mac: mac,
+                           ssid: ssidId,
+                           drate: drate,
+                           urate: urate)
+        }
+        
+        try await applyPendingChanges(context: context)
+        try await confirmPendingChanges(context: context)
+        return try await getConfiguration(context: context)
     }
 }
 
 extension GWN {
     
-    static private func deleteRuleWithoutCheck(context: GwnContext, ruleName: String) -> AnyPublisher<Void, GwnError> {
+    static private func deleteRuleWithoutCheck(context: GwnContext, ruleName: String) async throws {
         context.info("[gwncli] \(#function) ruleName: \(ruleName)")
         guard let request = GwnRequest.deleteRule(context: context, ruleName: ruleName).urlRequest else {
-            return Fail<Void, GwnError>(error: GwnError.freeForm("Failed to create delete request"))
-                .eraseToAnyPublisher()
+            throw GwnError.freeForm("Failed to create delete request")
         }
         
-        return context.session
-            .dataTaskPublisher(for: request)
-            .map(\.data)
-            .handleEvents(receiveOutput: { data in
-                context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
-            })
-            .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError { GwnError.networkError($0) }
-            .flatMap { evaluateResponse(response: $0, message: "Delete rule \(ruleName) failed: \($0)") }
-            .eraseToAnyPublisher()
+        let (data, _) = try await context.session.data(for: request)
+        context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
+        
+        let response = try JSONDecoder().decode(GwnResponse.self, from: data)
+        try evaluateResponse(response: response, message: "Delete rule \(ruleName) failed: \(response)")
     }
     
     static func addRule(context: GwnContext,
@@ -180,7 +133,7 @@ extension GWN {
                         mac: String,
                         ssid: String,
                         drate: String,
-                        urate: String) -> AnyPublisher<Void, GwnError> {
+                        urate: String) async throws {
         context.info("[gwncli] \(#function) ruleName: \(ruleName) mac: \(mac) ssid: \(ssid) drate: \(drate) urate: \(urate)")
         guard let request = GwnRequest.addRule(context: context,
                                                ruleName: ruleName,
@@ -189,20 +142,14 @@ extension GWN {
                                                urate: urate,
                                                drate: drate,
                                                ssidId: ssid).urlRequest else {
-            return Fail(error: GwnError.freeForm("Failed to create request"))
-                .eraseToAnyPublisher()
+            throw GwnError.freeForm("Failed to create request")
         }
         
-        return context.session
-            .dataTaskPublisher(for: request)
-            .map(\.data)
-            .handleEvents(receiveOutput: { data in
-                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
-            })
-            .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError { GwnError.networkError($0) }
-            .flatMap { evaluateResponse(response: $0, message: "Add rule \(ruleName) failed: \($0)") }
-            .eraseToAnyPublisher()
+        let (data, _) = try await context.session.data(for: request)
+        context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
+        
+        let response = try JSONDecoder().decode(GwnResponse.self, from: data)
+        try evaluateResponse(response: response, message: "Add rule \(ruleName) failed: \(response)")
     }
     
     
@@ -211,7 +158,7 @@ extension GWN {
                            mac: String,
                            ssid: String,
                            drate: String,
-                           urate: String) -> AnyPublisher<Void, GwnError> {
+                           urate: String) async throws {
         context.info("[gwncli] \(#function) context: \(context) ruleName: \(ruleName) mac: \(mac) ssid: \(ssid) drate: \(drate) urate: \(urate)")
         guard let request = GwnRequest.setRule(context: context,
                                                ruleName: ruleName,
@@ -220,68 +167,45 @@ extension GWN {
                                                urate: urate,
                                                drate: drate,
                                                ssidId: ssid).urlRequest else {
-            return Fail(error: GwnError.freeForm("Failed to create request"))
-                .eraseToAnyPublisher()
+            throw GwnError.freeForm("Failed to create request")
         }
         
-        return context.session
-            .dataTaskPublisher(for: request)
-            .map(\.data)
-            .handleEvents(receiveOutput: { data in
-                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
-            })
-            .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError { GwnError.networkError($0) }
-            .flatMap { evaluateResponse(response: $0, message: "Set rule \(ruleName) failed: \($0)") }
-            .eraseToAnyPublisher()
+        let (data, _) = try await context.session.data(for: request)
+        context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
+        
+        let response = try JSONDecoder().decode(GwnResponse.self, from: data)
+        try evaluateResponse(response: response, message: "Set rule \(ruleName) failed: \(response)")
     }
     
-    static private func applyPendingChanges(context: GwnContext) -> AnyPublisher<Void, GwnError> {
+    static private func applyPendingChanges(context: GwnContext) async throws {
         context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.apply(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("Failed to create request"))
-                .eraseToAnyPublisher()
+            throw GwnError.freeForm("Failed to create request")
         }
         
-        return context.session
-            .dataTaskPublisher(for: request)
-            .map(\.data)
-            .handleEvents(receiveOutput: { data in
-                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
-            })
-            .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError { GwnError.networkError($0) }
-            .flatMap { evaluateResponse(response: $0, message: "Apply failed: \($0)") }
-            .eraseToAnyPublisher()
+        let (data, _) = try await context.session.data(for: request)
+        context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
+        
+        let response = try JSONDecoder().decode(GwnResponse.self, from: data)
+        try evaluateResponse(response: response, message: "Apply failed: \(response)")
     }
     
-    static private func confirmPendingChanges(context: GwnContext) -> AnyPublisher<Void, GwnError> {
+    static private func confirmPendingChanges(context: GwnContext) async throws {
         context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.confirm(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("Failed to create request"))
-                .eraseToAnyPublisher()
+            throw GwnError.freeForm("Failed to create request")
         }
         
-        return context.session
-            .dataTaskPublisher(for: request)
-            .map(\.data)
-            .handleEvents(receiveOutput: { data in
-                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
-            })
-            .decode(type: GwnResponse.self, decoder: JSONDecoder())
-            .mapError { GwnError.networkError($0) }
-            .flatMap { evaluateResponse(response: $0, message: "Confirm failed: \($0)") }
-            .eraseToAnyPublisher()
+        let (data, _) = try await context.session.data(for: request)
+        context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
+        
+        let response = try JSONDecoder().decode(GwnResponse.self, from: data)
+        try evaluateResponse(response: response, message: "Confirm failed: \(response)")
     }
     
-    private static func evaluateResponse(response: GwnResponse, message: String) -> AnyPublisher<Void, GwnError> {
+    private static func evaluateResponse(response: GwnResponse, message: String) throws {
         guard response.isSuccess else {
-            return Fail(error: GwnError.freeForm(message))
-                .eraseToAnyPublisher()
+            throw GwnError.freeForm(message)
         }
-        
-        return Just<Void>(())
-            .setFailureType(to: GwnError.self)
-            .eraseToAnyPublisher()
     }
 }
