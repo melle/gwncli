@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gwncli}",
+            "name": "Debug gwncli",
+            "program": "${workspaceFolder:gwncli}/.build/debug/gwncli",
+            "preLaunchTask": "swift: Build Debug gwncli"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:gwncli}",
+            "name": "Release gwncli",
+            "program": "${workspaceFolder:gwncli}/.build/release/gwncli",
+            "preLaunchTask": "swift: Build Release gwncli"
+        }
+    ]
+}
