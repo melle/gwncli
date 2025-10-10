@@ -28,7 +28,7 @@ struct Gwncli: ParsableCommand {
         }
     }
 
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         // Optional abstracts and discussions are used for help output.
         abstract: "A command-line utility for Grandstream WiFi access points.",
         version: "1.0.0", //  automatic '--version' support.
@@ -41,7 +41,7 @@ struct Gwncli: ParsableCommand {
 extension Gwncli {
 
     struct ListRules: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             commandName: "list",
             abstract: "Lists currently active bandwidth rules."
         )
@@ -84,7 +84,7 @@ extension Gwncli {
 extension Gwncli {
 
     struct AddOrUpdate: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             commandName: "set",
             abstract: "Adds or updates a bandwidth rule for the given address."
         )
@@ -142,7 +142,7 @@ extension Gwncli {
 
 extension Gwncli {
     struct DeleteRule: AsyncParsableCommand {
-        static var configuration = CommandConfiguration(
+        static let configuration = CommandConfiguration(
             commandName: "delete",
             abstract: "Removes a bandwidth rule for the given address."
         )
