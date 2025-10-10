@@ -330,10 +330,23 @@ extension GwncliTests {
     }
     
     func data(resource: String) throws -> Data {
-        // Use Bundle.module to access test resources
-        guard let url = Bundle.module.url(forResource: resource, withExtension: "json") else {
-            throw NSError(domain: "TestError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Resource \(resource).json not found"])
+        // Bundle.module.url(forResource:withExtension:) doesn't handle filenames with parentheses well,
+        // and the bundle structure differs between Xcode and command line swift test.
+        // Try both possible locations:
+        
+        // Path for Xcode
+        let xcodeURL = Bundle.module.bundleURL.appendingPathComponent("Contents/Resources/Resources/\(resource).json")
+        if FileManager.default.fileExists(atPath: xcodeURL.path) {
+            return try Data(contentsOf: xcodeURL)
         }
-        return try Data(contentsOf: url)
+        
+        // Path for command line swift test
+        let cliURL = Bundle.module.bundleURL.appendingPathComponent("Resources/\(resource).json")
+        if FileManager.default.fileExists(atPath: cliURL.path) {
+            return try Data(contentsOf: cliURL)
+        }
+        
+        throw NSError(domain: "TestError", code: 1, 
+                     userInfo: [NSLocalizedDescriptionKey: "Resource \(resource).json not found at \(xcodeURL.path) or \(cliURL.path)"])
     }
 }
