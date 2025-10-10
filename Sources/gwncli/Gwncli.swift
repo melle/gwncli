@@ -12,7 +12,7 @@ struct Gwncli: ParsableCommand {
     
     /// Common options for all commands
     struct CommonOptions: ParsableArguments {
-        @Option(help: "URL of the Grandstream web interface - preferrable is the bonjour-URL - i.e. https://gwn_c074ad7b2950.local")
+        @Option(help: "URL of the Grandstream web interface - preferably is the bonjour-URL - i.e. https://gwn_c074ad7b2950.local")
         var url: String
         @Option(help: "Username to use at login, usually admin")
         var username: String
@@ -156,7 +156,7 @@ extension Gwncli {
     struct DeleteRule: ParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "delete",
-            abstract: "Removed a bandwidth rule for the given address."
+            abstract: "Removes a bandwidth rule for the given address."
         )
         
         @OptionGroup var options: CommonOptions

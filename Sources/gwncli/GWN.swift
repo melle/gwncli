@@ -200,7 +200,7 @@ extension GWN {
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
             .mapError { GwnError.networkError($0) }
-            .flatMap { evaluateResponse(response: $0, message: "Addd rule \(ruleName) failed: \($0)") }
+            .flatMap { evaluateResponse(response: $0, message: "Add rule \(ruleName) failed: \($0)") }
             .eraseToAnyPublisher()
     }
     

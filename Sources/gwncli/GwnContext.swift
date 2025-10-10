@@ -7,7 +7,7 @@ import FoundationNetworking
 
 final class GwnContext {
     
-    // Poo mans OSLog (on Linux...)
+    // Poor man's OSLog (on Linux...)
     enum LogLevel: UInt, RawRepresentable, CaseIterable, Decodable {
         case fatal = 1
         case error = 2
