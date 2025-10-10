@@ -10,16 +10,12 @@ let package = Package(
             .linux
         ],
     dependencies: [
-        .package(url: "https://github.com/OpenCombine/OpenCombine.git", from: "0.13.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
     ],
     targets: [
         .executableTarget(
             name: "gwncli",
             dependencies: [
-                "OpenCombine",
-                .product(name: "OpenCombineShim", package: "OpenCombine"),
-                .product(name: "OpenCombineFoundation", package: "OpenCombine"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
             ],
             swiftSettings: [
