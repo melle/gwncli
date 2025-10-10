@@ -9,7 +9,6 @@ A Swift command-line tool to programmatically manage bandwidth rules on Grandstr
 - **Delete rules** - Remove rules by name or MAC address
 - **Aliases support** - Use friendly names instead of MAC addresses
 - **Cross-platform** - Works on macOS and Linux
-- **Modern Swift** - Built with Swift 6.2 and structured concurrency
 
 ## Use Case
 
@@ -140,16 +139,37 @@ server {
 }
 ```
 
-Then point gwncli to your proxy instead.
+Then point gwncli to your proxy instead. 
 
-## Architecture
+**⚠️ Security:** Make sure to limit the proxy access to your local network only. You don't want someone else configuring your WiFi 🥴 Also provide a proper TLS certificate (Let's Encrypt, Zero SSL, or Buypass).
 
-Built with modern Swift features:
-- **Swift 6.2** with strict concurrency checking
-- **Structured concurrency** using async/await
-- **Sendable types** for thread-safe data sharing
-- **Fluent API** for elegant async operation chaining
-- **No external reactive frameworks** - uses native Swift concurrency
+**Access control example** for network 192.168.1.0/24. This assumes your current public v4/v6 IP can be found in `/etc/nginx/snippets/ipv4-public-address.conf` and `/etc/nginx/snippets/ipv6-network.conf`:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name gwn-proxy.local;
+    
+    # SSL certificate configuration
+    ssl_certificate /etc/letsencrypt/live/gwn-proxy.local/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/gwn-proxy.local/privkey.pem;
+    
+    location / {
+        # Allow local network and your public IP only
+        satisfy any;
+        allow 192.168.1.0/24;
+        allow fd00::/8;
+        include /etc/nginx/snippets/ipv4-public-address.conf;
+        include /etc/nginx/snippets/ipv6-network.conf;
+        deny all;
+        
+        # Proxy to Grandstream AP
+        proxy_pass https://gwn_c074ad7b2950.local;
+        proxy_ssl_verify off;
+    }
+}
+```
+
 
 ## Development
 
