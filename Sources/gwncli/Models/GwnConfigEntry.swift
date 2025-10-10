@@ -2,7 +2,7 @@
 
 import Foundation
 
-enum GwnConfigEntry: Decodable {
+enum GwnConfigEntry: Decodable, Sendable {
     case ssid(SsidConfig)
     case rule(BandwidthRule)
     case ignored(String)

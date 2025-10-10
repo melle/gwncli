@@ -2,7 +2,7 @@
 
 import Foundation
 
-enum GwnError: Error {
+enum GwnError: Error, Sendable {
     case networkError(_ error: Error, file: String = #file, line: Int = #line)
     case emptyLoginResponse
     case ruleNotFound(String)

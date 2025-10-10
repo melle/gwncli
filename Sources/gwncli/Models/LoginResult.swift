@@ -2,7 +2,7 @@
 
 import Foundation
 
-struct LoginResponse: Decodable {
+struct LoginResponse: Decodable, Sendable {
     let jsonrpc: String
     let id: Int
     @LossyCodableList var result: [LoginResult]
@@ -12,6 +12,6 @@ struct LoginResponse: Decodable {
     }
 }
 
-struct LoginResult: Equatable, Decodable {
+struct LoginResult: Equatable, Decodable, Sendable {
     let ubus_rpc_session: String
 }

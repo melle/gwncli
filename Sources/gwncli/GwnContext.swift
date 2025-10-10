@@ -79,7 +79,7 @@ final class GwnContext {
         print(message())
     }
 
-    struct Aliases {
+    struct Aliases: Sendable {
         public let aliasMap: [String: String]
         
         public func aliasFor(id: String) -> String {

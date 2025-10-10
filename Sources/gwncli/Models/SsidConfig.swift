@@ -2,7 +2,7 @@
 
 import Foundation
 
-struct SsidConfig: Decodable {
+struct SsidConfig: Decodable, Sendable {
     public let anonymous: Bool
     public let type: String
     public let name: String

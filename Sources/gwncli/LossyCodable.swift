@@ -5,7 +5,7 @@ import Foundation
 /// Ignores invalid elements when decoding instead of failing entirely.
 /// From https://www.swiftbysundell.com/articles/ignoring-invalid-json-elements-codable/
 @propertyWrapper
-struct LossyCodableList<Element> {
+struct LossyCodableList<Element>: Sendable where Element: Sendable {
     var elements: [Element]
     
     var wrappedValue: [Element] {
