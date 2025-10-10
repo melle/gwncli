@@ -154,7 +154,7 @@ struct GwnRequest: Encodable, Sendable {
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         request.httpBody = try? encoder.encode(self)
         
         return request

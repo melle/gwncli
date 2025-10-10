@@ -104,10 +104,18 @@ struct GwnContext: Sendable {
     struct Aliases: Sendable {
         public let aliasMap: [String: String]
         
+        // Initializer that normalizes all keys to lowercase for case-insensitive lookups
+        public init(aliasMap: [String: String]) {
+            self.aliasMap = aliasMap.reduce(into: [:]) { result, pair in
+                result[pair.key.lowercased()] = pair.value
+            }
+        }
+        
         public func aliasFor(id: String) -> String {
             let longestAliasCount = aliasMap.values.map { $0.count }.max() ?? 0
+            // Look up alias using lowercase, but preserve original ID casing in output
             let alias: String = aliasMap[id.lowercased()].map { " (\($0))" } ?? ""
-            let fullString = id.lowercased() + alias
+            let fullString = id + alias
             return fullString.padding(toLength: id.count + longestAliasCount + 3, withPad: " ", startingAt: 0)
         }
     }
