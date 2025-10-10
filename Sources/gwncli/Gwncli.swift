@@ -1,7 +1,6 @@
 // Copyright © 2022 Thomas Mellenthin (privat). All rights reserved.
 
 import ArgumentParser
-import OpenCombineShim
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
@@ -41,7 +40,7 @@ struct Gwncli: ParsableCommand {
 
 extension Gwncli {
 
-    struct ListRules: ParsableCommand {
+    struct ListRules: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "list",
             abstract: "Lists currently active bandwidth rules."
@@ -49,11 +48,10 @@ extension Gwncli {
         
         @OptionGroup var options: CommonOptions
 
-        mutating func run() throws {
+        mutating func run() async throws {
             guard let gwnUrl = URL(string: options.url) else {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
-            var cancellables: Set<AnyCancellable> = .init()
 #if !os(Linux)
             let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
 #else
@@ -66,21 +64,17 @@ extension Gwncli {
                                      password: options.password,
                                      aliases: options.aliases,
                                      logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
-            GWN.readAliases(context: context)
-                .flatMap { GWN.acquireSession(context: $0) }
-                .flatMap { GWN.getConfiguration(context: $0) }
-                .sink(receiveCompletion: { completion in
-                    switch completion {
-                    case let .failure(gwnError):
-                        ListRules.exit(withError: gwnError)
-                    case .finished:
-                        ListRules.exit()
-                    }
-                }, receiveValue: { configuration in
-                    print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
-                })
-                .store(in: &cancellables)
-            RunLoop.current.run()
+            
+            do {
+                var updatedContext = try await GWN.readAliases(context: context)
+                updatedContext = try await GWN.acquireSession(context: updatedContext)
+                let configuration = try await GWN.getConfiguration(context: updatedContext)
+                print(configuration.bandwidthRulesFormatted(aliases: updatedContext.aliases))
+            } catch let error as GwnError {
+                throw error
+            } catch {
+                throw GwnError.networkError(error)
+            }
         }
     }
 }
@@ -89,7 +83,7 @@ extension Gwncli {
 
 extension Gwncli {
 
-    struct AddOrUpdate: ParsableCommand {
+    struct AddOrUpdate: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "set",
             abstract: "Adds or updates a bandwidth rule for the given address."
@@ -106,7 +100,7 @@ extension Gwncli {
         @Option(help: "Upload-Rate (Mbps/Kbps), i.e. 1Mbps")
         var urate: String
 
-        func run() throws {
+        func run() async throws {
             guard let gwnUrl = URL(string: options.url) else {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
@@ -118,7 +112,6 @@ extension Gwncli {
                 throw GwnError.freeForm("Upload/Download rate must be expressed as Mbps or Kbps, i.e 64Kbps")
             }
             
-            var cancellables: Set<AnyCancellable> = .init()
 #if !os(Linux)
             let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
 #else
@@ -130,22 +123,17 @@ extension Gwncli {
                                      password: options.password,
                                      aliases: options.aliases,
                                      logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
-            GWN.readAliases(context: context)
-                .flatMap { GWN.acquireSession(context: $0) }
-                .flatMap { GWN.addOrUpdateRule(context: $0, mac: mac, ssidId: ssid, drate: drate, urate: urate) }
-                .sink(receiveCompletion: { completion in
-                    switch completion {
-                    case let .failure(gwnError):
-                        ListRules.exit(withError: gwnError)
-                    case .finished:
-                        ListRules.exit()
-                    }
-                }, receiveValue: { configuration in
-                    print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
-                })
-                .store(in: &cancellables)
-            RunLoop.current.run()
-
+            
+            do {
+                var updatedContext = try await GWN.readAliases(context: context)
+                updatedContext = try await GWN.acquireSession(context: updatedContext)
+                let configuration = try await GWN.addOrUpdateRule(context: updatedContext, mac: mac, ssidId: ssid, drate: drate, urate: urate)
+                print(configuration.bandwidthRulesFormatted(aliases: updatedContext.aliases))
+            } catch let error as GwnError {
+                throw error
+            } catch {
+                throw GwnError.networkError(error)
+            }
         }
     }
 }
@@ -153,7 +141,7 @@ extension Gwncli {
 // MARK: - Delete rule
 
 extension Gwncli {
-    struct DeleteRule: ParsableCommand {
+    struct DeleteRule: AsyncParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "delete",
             abstract: "Removes a bandwidth rule for the given address."
@@ -167,15 +155,13 @@ extension Gwncli {
         @Option(help: "If given, all rules for that mac address will be deleted")
         var mac: String?
 
-        func run() throws {
+        func run() async throws {
             guard let gwnUrl = URL(string: options.url) else {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
             guard nil != ruleName || nil != mac else {
                 throw GwnError.freeForm("You must provide either a rule name or a mac address!")
             }
-            
-            var cancellables: Set<AnyCancellable> = .init()
             
 #if !os(Linux)
             let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
@@ -188,21 +174,17 @@ extension Gwncli {
                                      password: options.password,
                                      aliases: options.aliases,
                                      logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
-            GWN.readAliases(context: context)
-                .flatMap { GWN.acquireSession(context: $0) }
-                .flatMap { GWN.deleteRule(context: $0, ruleName: ruleName, macAddress: mac) }
-                .sink(receiveCompletion: { completion in
-                    switch completion {
-                    case let .failure(gwnError):
-                        DeleteRule.exit(withError: gwnError)
-                    case .finished:
-                        DeleteRule.exit()
-                    }
-                }, receiveValue: { configuration in
-                    print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
-                })
-                .store(in: &cancellables)
-            RunLoop.current.run()
+            
+            do {
+                var updatedContext = try await GWN.readAliases(context: context)
+                updatedContext = try await GWN.acquireSession(context: updatedContext)
+                let configuration = try await GWN.deleteRule(context: updatedContext, ruleName: ruleName, macAddress: mac)
+                print(configuration.bandwidthRulesFormatted(aliases: updatedContext.aliases))
+            } catch let error as GwnError {
+                throw error
+            } catch {
+                throw GwnError.networkError(error)
+            }
         }
     }
 }
