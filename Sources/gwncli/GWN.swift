@@ -7,7 +7,7 @@ struct GWN {
     private static var cancellables: Set<AnyCancellable> = .init()
     
     static func readAliases(context: GwnContext) -> Future<GwnContext, GwnError> {
-        context.info {"[gwncli] \(#function)"}
+        context.info("[gwncli] \(#function)")
         guard let url = context.aliasesFile,
               let aliases = try? String(contentsOf: url) else {
             return Future { promise in
@@ -23,18 +23,19 @@ struct GWN {
             return nil
         }).reduce(into: Dictionary<String, String>()) { $0[$1.0] = $1.1 }
         
-        context.aliases = GwnContext.Aliases(aliasMap: result)
-        context.info {"[gwncli] \(#function) - found \(context.aliases.aliasMap.count) aliases"}
+        let newAliases = GwnContext.Aliases(aliasMap: result)
+        let updatedContext = context.withAliases(newAliases)
+        updatedContext.info("[gwncli] \(#function) - found \(newAliases.aliasMap.count) aliases")
         return Future { promise in
-            promise(.success(context))
+            promise(.success(updatedContext))
         }
     }
 
     static func acquireSession(context: GwnContext) -> Future<GwnContext, GwnError> {
-        context.info {"[gwncli] \(#function)"}
+        context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.login(context: context).urlRequest else {
             return Future { promise in
-                promise(.failure(GwnError.freeForm("FIXME \(#file):\(#line)")))
+                promise(.failure(GwnError.freeForm("Failed to create login request")))
             }
         }
         
@@ -43,30 +44,30 @@ struct GWN {
                 .dataTaskPublisher(for: request)
                 .map(\.data)
                 .handleEvents(receiveOutput: { data in
-                    context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
+                    context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
                 })
                 .decode(type: LoginResponse.self, decoder: JSONDecoder())
                 .mapError { GwnError.networkError($0) }
                 .map(\.session)
                 .sink(receiveCompletion: { completion in
                     if case let .failure(error) = completion {
-                        context.error {"[gwncli] \(#function) - \(error.underlyingError.debugDescription)"}
+                        context.error("[gwncli] \(#function) - \(error.underlyingError.debugDescription)")
                         promise(.failure(error))
                     }
                 }, receiveValue: { (token: String) in
-                    context.info {"[gwncli] \(#function) - got token: \(token)"}
-                    context.sessionToken = token
-                    promise(.success(context))
+                    let updatedContext = context.withSessionToken(token)
+                    updatedContext.info("[gwncli] \(#function) - got token: \(token)")
+                    promise(.success(updatedContext))
                 })
                 .store(in: &cancellables)
         }
     }
     
     static func getConfiguration(context: GwnContext) -> Future<GwnConfiguration, GwnError> {
-        context.info {"[gwncli] \(#function)" }
+        context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.getConfig(context: context).urlRequest else {
             return Future { promise in
-                promise(.failure(GwnError.freeForm("FIXME \(#file):\(#line)")))
+                promise(.failure(GwnError.freeForm("Failed to create getConfig request")))
             }
         }
         
@@ -75,7 +76,7 @@ struct GWN {
                 .dataTaskPublisher(for: request)
                 .map(\.data)
                 .handleEvents(receiveOutput: { data in
-                    context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
+                    context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
                 })
                 .decode(type: GwnConfigurationResponse.self, decoder: JSONDecoder())
                 .mapError { GwnError.networkError($0) }
@@ -93,7 +94,7 @@ struct GWN {
     }
     
     static func deleteRule(context: GwnContext, ruleName: String?, macAddress: String?) -> AnyPublisher<GwnConfiguration, GwnError> {
-        context.info {"[gwncli] \(#function) \(ruleName.map { "ruleName: " + $0 + " " } ?? "") \(macAddress.map { "macAddress: " + $0 + " " } ?? "")"}
+        context.info("[gwncli] \(#function) \(ruleName.map { "ruleName: " + $0 + " " } ?? "") \(macAddress.map { "macAddress: " + $0 + " " } ?? "")")
         return getConfiguration(context: context)
             .flatMap { (config: GwnConfiguration) -> AnyPublisher<BandwidthRule, GwnError> in
                 // only delete rules that exist :)
@@ -156,9 +157,9 @@ struct GWN {
 extension GWN {
     
     static private func deleteRuleWithoutCheck(context: GwnContext, ruleName: String) -> AnyPublisher<Void, GwnError> {
-        context.info {"[gwncli] \(#function) ruleName: \(ruleName)"}
+        context.info("[gwncli] \(#function) ruleName: \(ruleName)")
         guard let request = GwnRequest.deleteRule(context: context, ruleName: ruleName).urlRequest else {
-            return Fail<Void, GwnError>(error: GwnError.freeForm("FIXME \(#file):\(#line)"))
+            return Fail<Void, GwnError>(error: GwnError.freeForm("Failed to create delete request"))
                 .eraseToAnyPublisher()
         }
         
@@ -180,7 +181,7 @@ extension GWN {
                         ssid: String,
                         drate: String,
                         urate: String) -> AnyPublisher<Void, GwnError> {
-        context.info {"[gwncli] \(#function) ruleName: \(ruleName) mac: \(mac) ssid: \(ssid) drate: \(drate) urate: \(urate)"}
+        context.info("[gwncli] \(#function) ruleName: \(ruleName) mac: \(mac) ssid: \(ssid) drate: \(drate) urate: \(urate)")
         guard let request = GwnRequest.addRule(context: context,
                                                ruleName: ruleName,
                                                id: mac,
@@ -188,7 +189,7 @@ extension GWN {
                                                urate: urate,
                                                drate: drate,
                                                ssidId: ssid).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)"))
+            return Fail(error: GwnError.freeForm("Failed to create request"))
                 .eraseToAnyPublisher()
         }
         
@@ -196,7 +197,7 @@ extension GWN {
             .dataTaskPublisher(for: request)
             .map(\.data)
             .handleEvents(receiveOutput: { data in
-                context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
+                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
             .mapError { GwnError.networkError($0) }
@@ -211,7 +212,7 @@ extension GWN {
                            ssid: String,
                            drate: String,
                            urate: String) -> AnyPublisher<Void, GwnError> {
-        context.info {"[gwncli] \(#function) context: \(context) ruleName: \(ruleName) mac: \(mac) ssid: \(ssid) drate: \(drate) urate: \(urate)"}
+        context.info("[gwncli] \(#function) context: \(context) ruleName: \(ruleName) mac: \(mac) ssid: \(ssid) drate: \(drate) urate: \(urate)")
         guard let request = GwnRequest.setRule(context: context,
                                                ruleName: ruleName,
                                                id: mac,
@@ -219,7 +220,7 @@ extension GWN {
                                                urate: urate,
                                                drate: drate,
                                                ssidId: ssid).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)"))
+            return Fail(error: GwnError.freeForm("Failed to create request"))
                 .eraseToAnyPublisher()
         }
         
@@ -227,7 +228,7 @@ extension GWN {
             .dataTaskPublisher(for: request)
             .map(\.data)
             .handleEvents(receiveOutput: { data in
-                context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
+                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
             .mapError { GwnError.networkError($0) }
@@ -236,9 +237,9 @@ extension GWN {
     }
     
     static private func applyPendingChanges(context: GwnContext) -> AnyPublisher<Void, GwnError> {
-        context.info {"[gwncli] \(#function)"}
+        context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.apply(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)"))
+            return Fail(error: GwnError.freeForm("Failed to create request"))
                 .eraseToAnyPublisher()
         }
         
@@ -246,7 +247,7 @@ extension GWN {
             .dataTaskPublisher(for: request)
             .map(\.data)
             .handleEvents(receiveOutput: { data in
-                context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
+                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
             .mapError { GwnError.networkError($0) }
@@ -255,9 +256,9 @@ extension GWN {
     }
     
     static private func confirmPendingChanges(context: GwnContext) -> AnyPublisher<Void, GwnError> {
-        context.info {"[gwncli] \(#function)"}
+        context.info("[gwncli] \(#function)")
         guard let request = GwnRequest.confirm(context: context).urlRequest else {
-            return Fail(error: GwnError.freeForm("FIXME \(#file):\(#line)"))
+            return Fail(error: GwnError.freeForm("Failed to create request"))
                 .eraseToAnyPublisher()
         }
         
@@ -265,7 +266,7 @@ extension GWN {
             .dataTaskPublisher(for: request)
             .map(\.data)
             .handleEvents(receiveOutput: { data in
-                context.debug {"[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")"}
+                context.debug("[gwncli] \(#function) - response: \(String(data: data, encoding: .utf8) ?? "<nil>")")
             })
             .decode(type: GwnResponse.self, decoder: JSONDecoder())
             .mapError { GwnError.networkError($0) }

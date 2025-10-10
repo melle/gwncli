@@ -5,10 +5,10 @@ import Foundation
 import FoundationNetworking
 #endif
 
-final class GwnContext {
+struct GwnContext: Sendable {
     
     // Poor man's OSLog (on Linux...)
-    enum LogLevel: UInt, RawRepresentable, CaseIterable, Decodable {
+    enum LogLevel: UInt, RawRepresentable, CaseIterable, Decodable, Sendable {
         case fatal = 1
         case error = 2
         case warning = 3
@@ -32,10 +32,10 @@ final class GwnContext {
     public let url: URL
     public let userName: String
     public let password: String
-    public var sessionToken: String
-    public var requestId: Int
-    public var aliasesFile: URL?
-    public var aliases: Aliases = .init(aliasMap: [:])
+    public let sessionToken: String
+    public let requestId: Int
+    public let aliasesFile: URL?
+    public let aliases: Aliases
     public let logLevel: LogLevel
 
     init(session: URLSession,
@@ -45,6 +45,7 @@ final class GwnContext {
          sessionToken: String = "00000000000000000000000000000000",
          requestId: Int = 1,
          aliases: String? = nil,
+         aliasesMap: Aliases = .init(aliasMap: [:]),
          logLevel: LogLevel? = .warning) {
         self.session = session
         self.url = url
@@ -54,26 +55,47 @@ final class GwnContext {
         self.requestId = requestId
         self.aliasesFile = aliases.map { URL(fileURLWithPath: $0,
                                              relativeTo: URL(fileURLWithPath: FileManager().currentDirectoryPath)) }
+        self.aliases = aliasesMap
         self.logLevel = logLevel ?? .warning
     }
     
     var nextRequestId: Int {
-        requestId += 1
-        return requestId
+        requestId + 1
+    }
+    
+    func withNextRequestId() -> GwnContext {
+        GwnContext(session: session, url: url, userName: userName, password: password,
+                   sessionToken: sessionToken, requestId: nextRequestId,
+                   aliases: aliasesFile.map { $0.path },
+                   aliasesMap: aliases, logLevel: logLevel)
+    }
+    
+    func withSessionToken(_ token: String) -> GwnContext {
+        GwnContext(session: session, url: url, userName: userName, password: password,
+                   sessionToken: token, requestId: requestId,
+                   aliases: aliasesFile.map { $0.path },
+                   aliasesMap: aliases, logLevel: logLevel)
+    }
+    
+    func withAliases(_ newAliases: Aliases) -> GwnContext {
+        GwnContext(session: session, url: url, userName: userName, password: password,
+                   sessionToken: sessionToken, requestId: requestId,
+                   aliases: aliasesFile.map { $0.path },
+                   aliasesMap: newAliases, logLevel: logLevel)
     }
 
-    func info(_ message: () -> String) {
+    func info(_ message: @autoclosure () -> String) {
         guard logLevel.isInfo else { return }
         // there is no OSLog on Linux ;-(
         print(message())
     }
 
-    func error(_ message: () -> String) {
+    func error(_ message: @autoclosure () -> String) {
         guard logLevel.isError else { return }
         print(message())
     }
 
-    func debug(_ message: () -> String) {
+    func debug(_ message: @autoclosure () -> String) {
         guard logLevel.isDebug else { return }
         // there is no OSLog on Linux ;-(
         print(message())
