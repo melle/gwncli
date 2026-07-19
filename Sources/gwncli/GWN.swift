@@ -215,6 +215,82 @@ struct GWN {
         return candidates
     }
 
+    static func cleanupRandomizedRules(context: GwnContext,
+                                       maxAge: TimeInterval,
+                                       dryRun: Bool) async throws -> [CleanupCandidate] {
+        context.info("[gwncli] \(#function) maxAge: \(maxAge)s")
+        let clients = try await getClients(context: context)
+        let config = try await getConfiguration(context: context)
+
+        let aliasedMacs = Set(context.aliases.aliasMap.keys.compactMap { MacAddress.normalized($0) })
+        let candidates = rulesNeedingCleanup(rules: config.bandwidthRules,
+                                             clients: clients,
+                                             aliasedMacs: aliasedMacs,
+                                             now: Int(Date().timeIntervalSince1970),
+                                             maxAge: maxAge)
+        guard !candidates.isEmpty, !dryRun else {
+            return candidates
+        }
+
+        for candidate in candidates {
+            try await deleteRuleWithoutCheck(context: context, ruleName: candidate.ruleName)
+        }
+
+        try await applyPendingChanges(context: context)
+        try await confirmPendingChanges(context: context)
+        return candidates
+    }
+
+    /// A bandwidth rule for a randomized MAC whose client is gone.
+    struct CleanupCandidate: Sendable, Equatable {
+        let ruleName: String
+        /// Normalized colon-separated MAC, i.e. "72:35:CF:2A:B2:37"
+        let mac: String
+        let reason: String
+    }
+
+    /// Selects all rules for locally administered MACs whose client the access point
+    /// does not know anymore, or has not seen for longer than `maxAge` seconds.
+    /// MACs in `aliasedMacs` (normalized form) are never selected - the aliases file
+    /// acts as a keep-list for manually maintained rules.
+    static func rulesNeedingCleanup(rules: [BandwidthRule],
+                                    clients: [GwnClient],
+                                    aliasedMacs: Set<String>,
+                                    now: Int,
+                                    maxAge: TimeInterval) -> [CleanupCandidate] {
+        // newest last_seen per MAC (clients can be listed per radio), an online client counts as seen right now
+        var lastSeenByMac: [String: Int] = [:]
+        for client in clients {
+            guard let mac = MacAddress.normalized(client.clientMac) else { continue }
+            let seen = client.online == 1 ? now : client.lastSeen
+            lastSeenByMac[mac] = max(lastSeenByMac[mac] ?? 0, seen)
+        }
+
+        return rules.compactMap { rule in
+            guard let mac = MacAddress.normalized(rule.id),
+                  MacAddress.isLocallyAdministered(mac),
+                  !aliasedMacs.contains(mac) else {
+                return nil
+            }
+            guard let lastSeen = lastSeenByMac[mac] else {
+                return CleanupCandidate(ruleName: rule.name, mac: mac, reason: "not in the client list anymore")
+            }
+            let offline = TimeInterval(now - lastSeen)
+            guard offline > maxAge else {
+                return nil
+            }
+            return CleanupCandidate(ruleName: rule.name, mac: mac, reason: "last seen \(formattedAge(offline)) ago")
+        }
+    }
+
+    static func formattedAge(_ interval: TimeInterval) -> String {
+        let minutes = Int(interval / 60)
+        guard minutes >= 120 else { return "\(minutes) minutes" }
+        let hours = minutes / 60
+        guard hours >= 48 else { return "\(hours) hours" }
+        return "\(hours / 24) days"
+    }
+
     /// Returns `count` fresh rule names. Uses numeric comparison because the
     /// lexicographic sort in nextBandwidthRuleName would place "rule9" after "rule10".
     static func nextRuleNames(existingRules: [BandwidthRule], count: Int) -> [String] {

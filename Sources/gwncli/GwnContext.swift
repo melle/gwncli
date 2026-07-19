@@ -157,4 +157,9 @@ extension GwnContext {
     func throttlingRandomizedClients(drate: String, urate: String, ssidOverride: String?, dryRun: Bool) async throws -> [GWN.ThrottleCandidate] {
         try await GWN.throttleRandomizedClients(context: self, drate: drate, urate: urate, ssidOverride: ssidOverride, dryRun: dryRun)
     }
+
+    /// Deletes bandwidth rules of randomized (locally administered) MACs whose clients are gone
+    func cleaningUpRandomizedRules(maxAge: TimeInterval, dryRun: Bool) async throws -> [GWN.CleanupCandidate] {
+        try await GWN.cleanupRandomizedRules(context: self, maxAge: maxAge, dryRun: dryRun)
+    }
 }

@@ -121,6 +121,34 @@ rules are never overwritten by `throttle-locally-administered`).
 
 The reverse-engineered GWN API used by this tool is documented in [gwnapi.md](gwnapi.md).
 
+### Clean up rules of vanished random MACs
+
+Randomized MACs churn, so auto-created rules accumulate over time. The
+`cleanup-locally-administered` subcommand deletes rules for locally administered MACs
+whose client the AP does not know anymore, or has not been seen for longer than
+`--max-age` (default `7d`, accepts `m`/`h`/`d` suffixes):
+
+```bash
+gwncli cleanup-locally-administered \
+  --url "https://gwn_c074ad7b2950.local" \
+  --username admin \
+  --password yourpassword \
+  --aliases ~/.gwnaliases.txt \
+  --dry-run
+```
+
+**MACs listed in the aliases file are never deleted** — the aliases file doubles as a
+keep-list, so add any manually created rule for a random MAC there. Like the throttle
+command it only prints when it actually deletes something, and supports `--dry-run`:
+
+```crontab
+13 4 * * * gwncli cleanup-locally-administered --url "https://gwn_c074ad7b2950.local" --username admin --password yourpassword --aliases /home/user/.gwnaliases.txt
+```
+
+Note that devices using a *stable* private address (the iOS/Android default) reuse
+their random MAC when they rejoin, so a cleaned-up returning device simply gets
+re-throttled by the next throttle cron run.
+
 ### Using aliases
 
 Create a file `~/.gwnaliases.txt` with MAC-to-name mappings:

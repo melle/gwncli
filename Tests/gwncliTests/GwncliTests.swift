@@ -543,6 +543,60 @@ extension GwncliTests {
         XCTAssertEqual(sut, [.init(mac: "72:35:CF:2A:B2:37", hostname: "", ssidId: "ssid1")])
     }
 
+    func testParseAge() throws {
+        XCTAssertEqual(try Gwncli.parseAge("30m"), 30 * 60)
+        XCTAssertEqual(try Gwncli.parseAge("12h"), 12 * 3600)
+        XCTAssertEqual(try Gwncli.parseAge("7d"), 7 * 86400)
+        XCTAssertThrowsError(try Gwncli.parseAge("7"))
+        XCTAssertThrowsError(try Gwncli.parseAge("d"))
+        XCTAssertThrowsError(try Gwncli.parseAge("-1d"))
+        XCTAssertThrowsError(try Gwncli.parseAge("7w"))
+        XCTAssertThrowsError(try Gwncli.parseAge(""))
+    }
+
+    func testFormattedAge() {
+        XCTAssertEqual(GWN.formattedAge(90 * 60), "90 minutes")
+        XCTAssertEqual(GWN.formattedAge(12 * 3600), "12 hours")
+        XCTAssertEqual(GWN.formattedAge(9 * 86400), "9 days")
+    }
+
+    func testRulesNeedingCleanup() {
+        let now = 1784490717
+        let maxAge: TimeInterval = 7 * 86400
+        let staleSeen = now - 8 * 86400
+        let recentSeen = now - 3600
+
+        func offlineClient(mac: String, lastSeen: Int) -> GwnClient {
+            GwnClient(wired: 0, online: 0, associatedAp: "c074ad000001", clientMac: mac,
+                      ssid: "MyWifi", clientIpv4: "", hostname: "", os: "", lastSeen: lastSeen)
+        }
+
+        let rules = [rule(name: "rule0", mac: "72:35:CF:2A:B2:37"),  // LA, vanished -> delete
+                     rule(name: "rule1", mac: "66:AD:65:4A:68:D9"),  // LA, stale -> delete
+                     rule(name: "rule2", mac: "7A:52:3D:EF:B4:45"),  // LA, recently seen -> keep
+                     rule(name: "rule3", mac: "AE:44:41:DB:7F:02"),  // LA, online -> keep
+                     rule(name: "rule4", mac: "62:03:10:D3:D6:92"),  // LA, vanished but aliased -> keep
+                     rule(name: "rule5", mac: "9C:FC:28:D1:F7:20")]  // vendor MAC, vanished -> keep
+        let clients = [offlineClient(mac: "66ad654a68d9", lastSeen: staleSeen),
+                       // same MAC on a second radio, still stale
+                       offlineClient(mac: "66:AD:65:4A:68:D9", lastSeen: staleSeen - 100),
+                       offlineClient(mac: "7a523defb445", lastSeen: recentSeen),
+                       // online beats an old last_seen
+                       GwnClient(wired: 0, online: 1, associatedAp: "c074ad000001", clientMac: "ae4441db7f02",
+                                 ssid: "MyWifi", clientIpv4: "", hostname: "", os: "", lastSeen: staleSeen)]
+
+        // when
+        let sut = GWN.rulesNeedingCleanup(rules: rules,
+                                          clients: clients,
+                                          aliasedMacs: ["62:03:10:D3:D6:92"],
+                                          now: now,
+                                          maxAge: maxAge)
+
+        // then
+        XCTAssertEqual(sut, [.init(ruleName: "rule0", mac: "72:35:CF:2A:B2:37", reason: "not in the client list anymore"),
+                             .init(ruleName: "rule1", mac: "66:AD:65:4A:68:D9", reason: "last seen 8 days ago")])
+    }
+
     func testNextRuleNamesForBatch() {
         // given - rule9 and rule10 to guard against the lexicographic sorting trap ("rule9" > "rule10")
         let rules = [rule(name: "rule9", mac: "00:11:22:33:44:55"),
