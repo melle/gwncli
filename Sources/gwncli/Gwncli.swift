@@ -19,8 +19,13 @@ struct Gwncli: AsyncParsableCommand {
         var password: String
         @Option(help: "Path to an aliases file, i.e. ~/.gwnaliases.txt")
         var aliases: String?
-        @Option(help: "Log level (1..5)")
-        var logLevel: UInt = GwnContext.LogLevel.info.rawValue
+        @Option(help: "Log level (1..5), default 4 (3 for the throttle-locally-administered subcommand)")
+        var logLevel: UInt?
+
+        /// The log level given on the command line, or the given default.
+        func logLevel(default defaultLevel: GwnContext.LogLevel) -> GwnContext.LogLevel {
+            logLevel.flatMap { GwnContext.LogLevel(rawValue: $0) } ?? defaultLevel
+        }
 
         /// Generates an 8 character pseudo random password. Just to have a different password in the command line help every time you call it 🤡
         static func randomPassword() -> String {
@@ -28,11 +33,23 @@ struct Gwncli: AsyncParsableCommand {
         }
     }
 
+    /// GWN is very picky about the units, only Mbps and Kbps in the right case are allowed.
+    static func validateRates(_ rates: String...) throws {
+        guard let regex = try? NSRegularExpression(pattern: "[0-9]*[M,K]bps") else {
+            throw GwnError.freeForm("Invalid rate validation pattern")
+        }
+        for rate in rates {
+            guard 1 == regex.numberOfMatches(in: rate, range: NSRange(location: 0, length: rate.utf16.count)) else {
+                throw GwnError.freeForm("Upload/Download rate must be expressed as Mbps or Kbps, i.e 64Kbps")
+            }
+        }
+    }
+
     static let configuration = CommandConfiguration(
         // Optional abstracts and discussions are used for help output.
         abstract: "A command-line utility for Grandstream WiFi access points.",
         version: "1.0.0", //  automatic '--version' support.
-        subcommands: [ListRules.self, AddOrUpdate.self, DeleteRule.self],
+        subcommands: [ListRules.self, AddOrUpdate.self, DeleteRule.self, Throttle.self],
         defaultSubcommand: ListRules.self)
 }
 
@@ -63,8 +80,8 @@ extension Gwncli {
                                      userName: options.username,
                                      password: options.password,
                                      aliases: options.aliases,
-                                     logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
-            
+                                     logLevel: options.logLevel(default: .info))
+
             do {
                 let configuration = try await context
                     .readingAliases()
@@ -106,14 +123,8 @@ extension Gwncli {
             guard let gwnUrl = URL(string: options.url) else {
                 throw GwnError.freeForm("Invalid url \(options.url)")
             }
-            // GWN is very picky about the units, only Mbps and Kbps in the right case are allowed.
-            guard let regex = try? NSRegularExpression(pattern: "[0-9]*[M,K]bps"),
-                  1 == regex.numberOfMatches(in: drate, range: NSRange(location: 0, length: drate.utf16.count)),
-                  1 == regex.numberOfMatches(in: urate, range: NSRange(location: 0, length: urate.utf16.count))
-            else {
-                throw GwnError.freeForm("Upload/Download rate must be expressed as Mbps or Kbps, i.e 64Kbps")
-            }
-            
+            try Gwncli.validateRates(drate, urate)
+
 #if !os(Linux)
             let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
 #else
@@ -124,8 +135,8 @@ extension Gwncli {
                                      userName: options.username,
                                      password: options.password,
                                      aliases: options.aliases,
-                                     logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
-            
+                                     logLevel: options.logLevel(default: .info))
+
             do {
                 let configuration = try await context
                     .readingAliases()
@@ -177,15 +188,82 @@ extension Gwncli {
                                      userName: options.username,
                                      password: options.password,
                                      aliases: options.aliases,
-                                     logLevel: GwnContext.LogLevel(rawValue: options.logLevel))
-            
+                                     logLevel: options.logLevel(default: .info))
+
             do {
                 let configuration = try await context
                     .readingAliases()
                     .acquiringSession()
                     .deletingRule(ruleName: ruleName, macAddress: mac)
-                
+
                 print(configuration.bandwidthRulesFormatted(aliases: context.aliases))
+            } catch let error as GwnError {
+                throw error
+            } catch {
+                throw GwnError.networkError(error)
+            }
+        }
+    }
+}
+
+// MARK: - Throttle randomized MACs
+
+extension Gwncli {
+    struct Throttle: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "throttle-locally-administered",
+            abstract: "Adds a bandwidth rule for every WiFi client with a randomized (locally administered) MAC address.",
+            discussion: """
+                Intended to be run periodically from cron. Prints one line per newly created rule \
+                and nothing at all when every randomized MAC is already covered by a rule, so cron \
+                stays quiet unless something happened.
+
+                Example crontab entry:
+                */5 * * * * gwncli throttle-locally-administered --url https://gwn_c074ad7b2950.local --username admin --password secret
+                """
+        )
+
+        @OptionGroup var options: CommonOptions
+
+        @Option(help: "Download-Rate applied to new rules (Mbps/Kbps)")
+        var drate: String = "32Kbps"
+        @Option(help: "Upload-Rate applied to new rules (Mbps/Kbps)")
+        var urate: String = "1000Mbps"
+        @Option(help: "SSID-id the new rules apply to (i.e. ssid0). Default: resolved from the SSID the client is connected to")
+        var ssid: String?
+        @Flag(help: "Only print what would be throttled, without changing anything")
+        var dryRun: Bool = false
+
+        func run() async throws {
+            guard let gwnUrl = URL(string: options.url) else {
+                throw GwnError.freeForm("Invalid url \(options.url)")
+            }
+            try Gwncli.validateRates(drate, urate)
+
+#if !os(Linux)
+            let session = URLSession(configuration: URLSession.shared.configuration, delegate: TlsWarningsIgnoringUrlSessionDelegate(), delegateQueue: nil)
+#else
+            let session = URLSession(configuration: URLSession.shared.configuration)
+#endif
+            // On Linux, a URLSession that is deallocated without being invalidated can
+            // abort the process at exit - fatal for a cron job that must exit 0 when idle.
+            defer { session.finishTasksAndInvalidate() }
+            let context = GwnContext(session: session,
+                                     url: gwnUrl,
+                                     userName: options.username,
+                                     password: options.password,
+                                     aliases: options.aliases,
+                                     logLevel: options.logLevel(default: .warning))
+
+            do {
+                let throttled = try await context
+                    .acquiringSession()
+                    .throttlingRandomizedClients(drate: drate, urate: urate, ssidOverride: ssid, dryRun: dryRun)
+
+                for candidate in throttled {
+                    let host = candidate.hostname.isEmpty ? "" : " (\(candidate.hostname))"
+                    print("\(dryRun ? "Would throttle" : "Throttled") \(candidate.mac)\(host) on \(candidate.ssidId): down \(drate), up \(urate)")
+                }
             } catch let error as GwnError {
                 throw error
             } catch {

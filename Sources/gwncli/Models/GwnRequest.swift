@@ -117,6 +117,34 @@ struct GwnRequest: Encodable, Sendable {
         )
     }
     
+    static func getClientsCount(context: GwnContext) -> GwnRequest {
+        GwnRequest(id: context.nextRequestId,
+                   method: "call",
+                   params: [
+                    .value(context.sessionToken),
+                    .value("controller.core"),
+                    .value("get_clients_count"),
+                    .getClientsCount(.init())
+                   ],
+                   urlPath: "/ubus/controller.core.get_clients_count",
+                   context: context
+        )
+    }
+
+    static func getClientsRange(context: GwnContext, start: Int, end: Int) -> GwnRequest {
+        GwnRequest(id: context.nextRequestId,
+                   method: "call",
+                   params: [
+                    .value(context.sessionToken),
+                    .value("controller.core"),
+                    .value("get_clients_range"),
+                    .getClientsRange(.init(start: start, end: end))
+                   ],
+                   urlPath: "/ubus/controller.core.get_clients_range",
+                   context: context
+        )
+    }
+
     static func apply(context: GwnContext) -> GwnRequest {
         GwnRequest(id: context.nextRequestId,
                    method: "call",
@@ -168,6 +196,8 @@ enum RequestParameters: Encodable, Sendable {
     case deleteRule(DeleteRule)
     case addRule(AddRule)
     case setRule(SetRule)
+    case getClientsCount(GetClientsCount)
+    case getClientsRange(GetClientsRange)
     case apply(Apply)
     case confirm(Confirm)
     
@@ -185,6 +215,10 @@ enum RequestParameters: Encodable, Sendable {
         case .addRule(let x):
             try container.encode(x)
         case .setRule(let x):
+            try container.encode(x)
+        case .getClientsCount(let x):
+            try container.encode(x)
+        case .getClientsRange(let x):
             try container.encode(x)
         case .apply(let x):
             try container.encode(x)
@@ -239,6 +273,26 @@ enum RequestParameters: Encodable, Sendable {
         }
     }
     
+    struct GetClientsCount: Encodable, Sendable {
+    }
+
+    struct GetClientsRange: Encodable, Sendable {
+        public let start: Int
+        public let end: Int
+        /// Values as observed in the web UI: wireless 2, radio 0, associated_ap "" return all clients.
+        public let wireless: Int = 2
+        public let radio: Int = 0
+        public let associatedAp: String = ""
+
+        enum CodingKeys: String, CodingKey {
+            case start
+            case end
+            case wireless
+            case radio
+            case associatedAp = "associated_ap"
+        }
+    }
+
     struct Apply: Encodable, Sendable {
         public let timeout: Int = 10
         public let rollback: Bool = true
