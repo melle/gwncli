@@ -7,6 +7,7 @@ A Swift command-line tool to programmatically manage bandwidth rules on Grandstr
 - **List bandwidth rules** - View all configured rules with their settings
 - **Add/Update rules** - Create new rules or modify existing ones
 - **Delete rules** - Remove rules by name or MAC address
+- **Throttle randomized MACs** - Automatically limit clients with random ("private") MAC addresses, cron-friendly
 - **Aliases support** - Use friendly names instead of MAC addresses
 - **Cross-platform** - Works on macOS and Linux
 
@@ -88,6 +89,65 @@ gwncli delete \
   --password yourpassword \
   --mac AA:BB:CC:DD:EE:FF
 ```
+
+### Throttle clients with randomized MAC addresses
+
+Devices using MAC randomization ("private WiFi address") have the *locally administered*
+bit set in their MAC. The `throttle-locally-administered` subcommand fetches the AP's
+client list and adds a bandwidth rule for every such client that does not have one yet:
+
+```bash
+gwncli throttle-locally-administered \
+  --url "https://gwn_c074ad7b2950.local" \
+  --username admin \
+  --password yourpassword
+```
+
+- Default limits are `32Kbps` down / `1000Mbps` up; override with `--drate`/`--urate`.
+- The SSID for new rules is resolved from the SSID the client is connected to; use
+  `--ssid ssid0` to force one.
+- `--dry-run` prints what would be throttled without changing anything.
+- The command prints one line per newly created rule and **nothing at all** when there
+  is nothing to do, so it is ideal for cron. Anyone joining with a random MAC gets
+  full bandwidth for at most one cron interval:
+
+```crontab
+*/5 * * * * gwncli throttle-locally-administered --url "https://gwn_c074ad7b2950.local" --username admin --password yourpassword
+```
+
+To exempt a device permanently, disable "private WiFi address" for your network on the
+device, or delete its rule and add a rule with better rates via `gwncli set` (existing
+rules are never overwritten by `throttle-locally-administered`).
+
+The reverse-engineered GWN API used by this tool is documented in [gwnapi.md](gwnapi.md).
+
+### Clean up rules of vanished random MACs
+
+Randomized MACs churn, so auto-created rules accumulate over time. The
+`cleanup-locally-administered` subcommand deletes rules for locally administered MACs
+whose client the AP does not know anymore, or has not been seen for longer than
+`--max-age` (default `7d`, accepts `m`/`h`/`d` suffixes):
+
+```bash
+gwncli cleanup-locally-administered \
+  --url "https://gwn_c074ad7b2950.local" \
+  --username admin \
+  --password yourpassword \
+  --aliases ~/.gwnaliases.txt \
+  --dry-run
+```
+
+**MACs listed in the aliases file are never deleted** — the aliases file doubles as a
+keep-list, so add any manually created rule for a random MAC there. Like the throttle
+command it only prints when it actually deletes something, and supports `--dry-run`:
+
+```crontab
+13 4 * * * gwncli cleanup-locally-administered --url "https://gwn_c074ad7b2950.local" --username admin --password yourpassword --aliases /home/user/.gwnaliases.txt
+```
+
+Note that devices using a *stable* private address (the iOS/Android default) reuse
+their random MAC when they rejoin, so a cleaned-up returning device simply gets
+re-throttled by the next throttle cron run.
 
 ### Using aliases
 
